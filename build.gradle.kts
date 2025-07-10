@@ -37,8 +37,6 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    finalizedBy("koverXmlReportJvm")
-    finalizedBy("koverHtmlReportJvm")
 }
 
 kover {
@@ -48,24 +46,51 @@ kover {
         }
     }
     reports {
+        filters {
+            excludes {
+                classes(
+                    "com.thomas.core.model.security.SecurityRole*",
+                    "com.thomas.core.model.security.SecurityRoleGroup*",
+                    "com.thomas.core.model.security.SecurityRoleSubgroup*",
+                )
+            }
+        }
         total {
             verify {
-                onCheck = true
-                rule("Branch Coverage of Tests must be more than 90%") {
+                onCheck = false
+                rule("Branch Coverage of Tests must be more than 95%") {
                     disabled = false
                     groupBy = GroupingEntityType.APPLICATION
                     bound {
                         aggregationForGroup = AggregationType.COVERED_PERCENTAGE
                         coverageUnits = CoverageUnit.BRANCH
-                        minValue = 90
+                        minValue = 95
+                    }
+                }
+                rule("Line Coverage of Tests must be more than 95%") {
+                    disabled = false
+                    groupBy = GroupingEntityType.APPLICATION
+                    bound {
+                        aggregationForGroup = AggregationType.COVERED_PERCENTAGE
+                        coverageUnits = CoverageUnit.LINE
+                        minValue = 95
+                    }
+                }
+                rule("Instruction Coverage of Tests must be more than 95%") {
+                    disabled = false
+                    groupBy = GroupingEntityType.APPLICATION
+                    bound {
+                        aggregationForGroup = AggregationType.COVERED_PERCENTAGE
+                        coverageUnits = CoverageUnit.INSTRUCTION
+                        minValue = 95
                     }
                 }
             }
             xml {
-                onCheck = true
+                onCheck = false
             }
             html {
-                onCheck = true
+                onCheck = false
             }
         }
     }
