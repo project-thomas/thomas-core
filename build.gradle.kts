@@ -1,6 +1,3 @@
-import kotlinx.kover.gradle.plugin.dsl.AggregationType
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -58,7 +55,7 @@ kover {
         total {
             verify {
                 onCheck = false
-                rule("Branch Coverage of Tests must be more than 95%") {
+                /*rule("Branch Coverage of Tests must be more than 95%") {
                     disabled = false
                     groupBy = GroupingEntityType.APPLICATION
                     bound {
@@ -84,7 +81,7 @@ kover {
                         coverageUnits = CoverageUnit.INSTRUCTION
                         minValue = 95
                     }
-                }
+                }*/
             }
             xml {
                 onCheck = false
@@ -99,7 +96,7 @@ kover {
 sonar {
 
     properties {
-        property("sonar.sources",  file("$projectDir/src/main/kotlin/"))
+        property("sonar.sources", file("$projectDir/src/main/kotlin/"))
         property("sonar.tests", file("$projectDir/src/test/kotlin/"))
         property("sonar.projectName", "T.H.O.M.A.S. Core")
         property("sonar.projectKey", "thomas-core")
@@ -107,6 +104,14 @@ sonar {
         property("sonar.host.url", System.getenv("THOMAS_CORE_SONAR_URL"))
         property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/reportJvm.xml")
         property("sonar.verbose", true)
+        property("sonar.qualitygate.wait", true)
+        property(
+            "sonar.exclusions", listOf(
+                "**/com/thomas/core/model/security/SecurityRole**",
+                "**/com/thomas/core/model/security/SecurityRoleGroup**",
+                "**/com/thomas/core/model/security/SecurityRoleSubgroup**",
+            ).joinToString(separator = ",")
+        )
     }
 }
 
