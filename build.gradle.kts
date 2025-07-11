@@ -1,3 +1,6 @@
+import kotlinx.kover.gradle.plugin.dsl.AggregationType
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -55,7 +58,7 @@ kover {
         total {
             verify {
                 onCheck = false
-                /*rule("Branch Coverage of Tests must be more than 95%") {
+                rule("Branch Coverage of Tests must be more than 95%") {
                     disabled = false
                     groupBy = GroupingEntityType.APPLICATION
                     bound {
@@ -81,7 +84,7 @@ kover {
                         coverageUnits = CoverageUnit.INSTRUCTION
                         minValue = 95
                     }
-                }*/
+                }
             }
             xml {
                 onCheck = false
