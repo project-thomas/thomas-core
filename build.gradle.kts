@@ -1,18 +1,22 @@
-import kotlinx.kover.gradle.plugin.dsl.AggregationType
-import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
-import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType
+import java.net.URI
+import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.INSTRUCTION
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.kotlin.lang)
     alias(libs.plugins.test.fixtures)
-    id("org.jetbrains.kotlinx.kover") version "0.9.1"
-    id("org.sonarqube") version "6.2.0.5505"
+    alias(libs.plugins.kotlinx.kover)
+    alias(libs.plugins.sonarqube.scanner)
+    `maven-publish`
+    java
 }
 
 group = "com.thomas"
-version = "0.0.1"
 
 java.sourceCompatibility = JavaVersion.valueOf(libs.versions.target.get())
 java.targetCompatibility = JavaVersion.valueOf(libs.versions.target.get())
@@ -60,28 +64,28 @@ kover {
                 onCheck = false
                 rule("Branch Coverage of Tests must be more than 95%") {
                     disabled = false
-                    groupBy = GroupingEntityType.APPLICATION
+                    groupBy = APPLICATION
                     bound {
-                        aggregationForGroup = AggregationType.COVERED_PERCENTAGE
-                        coverageUnits = CoverageUnit.BRANCH
+                        aggregationForGroup = COVERED_PERCENTAGE
+                        coverageUnits = BRANCH
                         minValue = 95
                     }
                 }
                 rule("Line Coverage of Tests must be more than 95%") {
                     disabled = false
-                    groupBy = GroupingEntityType.APPLICATION
+                    groupBy = APPLICATION
                     bound {
-                        aggregationForGroup = AggregationType.COVERED_PERCENTAGE
-                        coverageUnits = CoverageUnit.LINE
+                        aggregationForGroup = COVERED_PERCENTAGE
+                        coverageUnits = LINE
                         minValue = 95
                     }
                 }
                 rule("Instruction Coverage of Tests must be more than 95%") {
                     disabled = false
-                    groupBy = GroupingEntityType.APPLICATION
+                    groupBy = APPLICATION
                     bound {
-                        aggregationForGroup = AggregationType.COVERED_PERCENTAGE
-                        coverageUnits = CoverageUnit.INSTRUCTION
+                        aggregationForGroup = COVERED_PERCENTAGE
+                        coverageUnits = INSTRUCTION
                         minValue = 95
                     }
                 }
@@ -97,7 +101,6 @@ kover {
 }
 
 sonar {
-
     properties {
         property("sonar.sources", file("$projectDir/src/main/kotlin/"))
         property("sonar.tests", file("$projectDir/src/test/kotlin/"))
@@ -124,4 +127,61 @@ tasks.withType<KotlinCompile> {
 
 tasks.named("sonar") {
     dependsOn("koverXmlReport")
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+            from(components["kotlin"])
+            artifact(tasks.named("testFixturesJar")) {
+                classifier = "test-fixtures"
+
+            }
+            pom {
+                packaging = "jar"
+                name.set("T.H.O.M.A.S. Core")
+                description.set("T.H.O.M.A.S. Core module for use in all other modules of the project.")
+                licenses {
+                    license {
+                        name.set("MIT license")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                developers {
+                    developer {
+                        name.set("Nicanor Bondarenco")
+                        email.set("nicanor_bondarenco@hotmail.com")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/NicoBondarenco/thomas-core.git")
+                    developerConnection.set("scm:git:ssh://github.com/NicoBondarenco/thomas-core.git")
+                    url.set("https://github.com/NicoBondarenco/thomas-core")
+                }
+
+            }
+        }
+    }
+    repositories {
+        maven {
+            val repository = if (project.version.toString().endsWith("SNAPSHOT")) {
+                "snapshot"
+            } else {
+                "release"
+            }
+            url = URI.create("https://repo.repsy.io/mvn/${System.getenv("REPSY_USERNAME")}/thomas-$repository")
+            credentials {
+                username = System.getenv("REPSY_USERNAME")
+                password = System.getenv("REPSY_PASSWORD")
+            }
+        }
+    }
 }

@@ -1,10 +1,11 @@
 [versions]
 kotlin = "2.2.0"
 kotlinx-coroutines = "1.10.2"
-jvm = "JVM_21"
-jdk = "21"
-target = "VERSION_21"
-jacoco = "0.8.12"
+jvm = "JVM_24"
+jdk = "24"
+target = "VERSION_24"
+kover = "0.9.1"
+sonarqube = "6.2.0.5505"
 
 logback-classic = "1.5.18"
 logback-kotlin = "7.0.7"
@@ -26,8 +27,9 @@ skyscreamer-jsonassert = "1.5.3"
 
 [plugins]
 kotlin-lang = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-coverage-jacoco = { id = "jacoco" }
 test-fixtures = { id = "java-test-fixtures" }
+kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+sonarqube-scanner = { id = "org.sonarqube", version.ref = "sonarqube" }
 
 [libraries]
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
