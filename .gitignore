@@ -1,0 +1,56 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+/nico.iml
+/config/neo4j/plugins/
+/config/neo4j/conf/
+/config/neo4j/logs/
+/config/neo4j/data/
+
+/module/management/config/neo4j/conf/
+/module/management/config/neo4j/data/
+/module/management/config/neo4j/logs/
+/module/management/config/zookeeper/data/
+/module/management/config/zookeeper/logs/
+/module/management/config/zookeeper/secrets/
+/module/management/config/kafka/broker-01/data/
+/module/management/config/kafka/broker-01/secrets/
+/module/management/config/kafka/broker-02/data/
+/module/management/config/kafka/broker-02/secrets/
+/module/management/config/kafka/broker-03/data/
+/module/management/config/kafka/broker-03/secrets/
+/module/management/config/rabbitmq/data/
