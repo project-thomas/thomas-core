@@ -1,9 +1,9 @@
 [versions]
 kotlin = "2.2.0"
 kotlinx-coroutines = "1.10.2"
-jvm = "JVM_24"
-jdk = "24"
-target = "VERSION_24"
+jvm = "JVM_21"
+jdk = "21"
+target = "VERSION_21"
 kover = "0.9.1"
 sonarqube = "6.2.0.5505"
 
