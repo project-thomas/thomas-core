@@ -107,8 +107,8 @@ sonar {
         property("sonar.projectName", "T.H.O.M.A.S. Core")
         property("sonar.projectKey", "thomas-core")
         property("sonar.login", System.getenv("THOMAS_CORE_SONAR_LOGIN"))
-        property("sonar.host.url", System.getenv("THOMAS_CORE_SONAR_URL"))
-        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/reportJvm.xml")
+        property("sonar.host.url", System.getenv("THOMAS_SONAR_URL"))
+        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/report.xml")
         property("sonar.verbose", true)
         property("sonar.qualitygate.wait", true)
         property(
