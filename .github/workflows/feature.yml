@@ -31,11 +31,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Setup Github CLI
+        uses: actions4gh/setup-gh@v1
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Versioning
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUR_VERSION: ${{ vars.CURRENT_VERSION }}
         run: |
           NEW_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
