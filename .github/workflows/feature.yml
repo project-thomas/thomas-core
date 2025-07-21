@@ -37,7 +37,7 @@ jobs:
       - name: Setup Git
         uses: isikerhan/setup-git@v1
         with:
-          git-version: 2.50.1
+          git-version: 2.44.3
 
       - name: Setup Github CLI
         uses: alexnorell/install-gh-cli-action@v0.1.2
