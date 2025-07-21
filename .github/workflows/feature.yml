@@ -31,11 +31,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Setup Github CLI
-        uses: actions4gh/setup-gh@v1
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Setup Github CLI
+        uses: wusatosi/setup-gh@v1
 
       - name: Versioning
         env:
