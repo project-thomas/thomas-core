@@ -43,7 +43,10 @@ jobs:
         env:
           THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
           THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
-        run: ./gradlew sonar
+        run: |
+          echo "THOMAS_CORE_SONAR_LOGIN: $THOMAS_CORE_SONAR_LOGIN"
+          echo "THOMAS_SONAR_URL: $THOMAS_SONAR_URL"
+          ./gradlew sonar
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
