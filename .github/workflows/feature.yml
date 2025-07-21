@@ -35,7 +35,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Setup Github CLI
-        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
+        uses: alexnorell/install-gh-cli-action@v0.1.2
+        with:
+          cli-release: latest
+          gh-platform: linux
+          gh-arch: amd64
 
       - name: Versioning
         env:
