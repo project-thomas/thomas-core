@@ -39,6 +39,9 @@ jobs:
         run: ./gradlew koverVerify koverHtmlReport koverXmlReport
 
       - name: Quality Gate
+        env:
+          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
+          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
         run: ./gradlew sonar
 
       - name: Create Pull Request
