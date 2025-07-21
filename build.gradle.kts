@@ -17,6 +17,7 @@ plugins {
 }
 
 group = "com.thomas"
+version = projectVersion()
 
 java.sourceCompatibility = JavaVersion.valueOf(libs.versions.target.get())
 java.targetCompatibility = JavaVersion.valueOf(libs.versions.target.get())
@@ -184,4 +185,30 @@ publishing {
             }
         }
     }
+}
+
+fun projectVersion(): String = currentVersion()
+    .incrementMinor()
+    .versionByEnv()
+
+fun currentVersion(): String = System
+    .getenv("CUR_VERSION")
+    ?.takeIf { it.trim().isNotEmpty() }
+    ?: "1.-1.0"
+
+fun String.incrementMinor(): String = this
+    .split(".")
+    .let { versions ->
+        "${versions[0]}.${versions[1].toInt() + 1}.0"
+    }
+    .apply {
+        println("NEW VERSION: $this")
+    }
+
+fun String.versionByEnv(): String = this.let { ver ->
+    val envType = System.getenv("ENVIRONMENT")
+    println("GENERATION VERSION FOR ENVIRONMENT: $envType")
+    envType?.takeIf {
+        it.trim().isNotEmpty() && it == "PRODUCTION"
+    }?.let { ver } ?: "$ver-SNAPSHOT"
 }

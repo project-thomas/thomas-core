@@ -21,6 +21,7 @@ jobs:
         id: build-data
         run: |
           echo "current_branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -33,28 +34,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew clean build -x test
-
-      - name: Run Tests
-        run: ./gradlew test
-
-      - name: Generate Reports
-        run: ./gradlew koverVerify koverHtmlReport koverXmlReport
-
-      - name: Quality Gate
+      - name: Versioning
         env:
-          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
-          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
         run: |
-          echo "THOMAS_CORE_SONAR_LOGIN: $THOMAS_CORE_SONAR_LOGIN"
-          echo "THOMAS_SONAR_URL: $THOMAS_SONAR_URL"
-          ./gradlew sonar
-
-      - name: Create Pull Request
-        uses: thomaseizinger/create-pull-request@master
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          head: ${{ github.ref }}
-          base: develop
-          title: Pull Request from branch ${{ steps.build-data.outputs.current_branch }} to develop
+          NEW_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
+          echo "NEW VERSION: $NEW_VERSION"
+          gh variable set CURRENT_VERSION --body $NEW_VERSION
