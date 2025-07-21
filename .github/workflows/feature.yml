@@ -35,9 +35,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Setup Github CLI
-        uses: wusatosi/setup-gh@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
 
       - name: Versioning
         env:
