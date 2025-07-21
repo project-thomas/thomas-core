@@ -36,6 +36,8 @@ jobs:
 
       - name: Setup Github CLI
         uses: wusatosi/setup-gh@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Versioning
         env:
