@@ -10,8 +10,8 @@ jobs:
       group: Default
 
     permissions:
-      contents: read
-      pull-request: write
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout sources
