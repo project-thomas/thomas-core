@@ -57,6 +57,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build and Test
         run: |
           ./gradlew clean build test --parallel --build-cache
@@ -73,6 +76,7 @@ jobs:
             build/reports/
             build/libs/
           retention-days: 7
+
   Quality-Analysis:
     name: Quality Analysis
     runs-on:
@@ -99,6 +103,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Download build reports
         uses: actions/download-artifact@v4
@@ -142,6 +149,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Increment Version
         id: version
@@ -190,6 +200,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Publish Snapshot
         env:

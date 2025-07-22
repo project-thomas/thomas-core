@@ -75,6 +75,9 @@ jobs:
         with:
           cache-read-only: true
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build for PRODUCTION
         run: |
           ./gradlew clean build -x test --parallel --build-cache
@@ -114,6 +117,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Run security audit
         run: |
@@ -162,6 +168,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Download test artifacts
         uses: actions/download-artifact@v4
         with:
@@ -208,6 +217,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Publish Release Artifacts
         env:
