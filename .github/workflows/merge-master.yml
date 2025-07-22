@@ -99,4 +99,3 @@ jobs:
           REPSY_USERNAME: ${{secrets.REPSY_USERNAME}}
           REPSY_PASSWORD: ${{secrets.REPSY_PASSWORD}}
         run: ./gradlew publish
-
