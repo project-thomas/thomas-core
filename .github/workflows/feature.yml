@@ -35,7 +35,7 @@ jobs:
 
       - name: Versioning
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
           CUR_VERSION: ${{ vars.CURRENT_VERSION }}
         run: ./gradlew incrementMinorVersion
         
