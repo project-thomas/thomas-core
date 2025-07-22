@@ -34,18 +34,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Setup Git
-        uses: isikerhan/setup-git@v1
-        with:
-          git-version: 2.44.3
-
-      - name: Setup Github CLI
-        uses: alexnorell/install-gh-cli-action@v0.1.2
-        with:
-          cli-release: latest
-          gh-platform: linux
-          gh-arch: amd64
-
       - name: Versioning
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
