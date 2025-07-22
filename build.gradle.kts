@@ -1,4 +1,7 @@
 import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.INSTRUCTION
@@ -187,14 +190,42 @@ publishing {
     }
 }
 
-fun projectVersion(): String = currentVersion()
-    .incrementMinor()
-    .versionByEnv()
+tasks.register("incrementMinorVersion") {
+
+    description = "Increment Project Minor Version"
+    group = "versioning"
+
+    val currentVersion = currentVersion()
+    val newVersion = currentVersion.incrementMinor()
+    println("Increment Minor Version: $currentVersion -> $newVersion")
+
+    val client = HttpClient.newBuilder().build()
+    val request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.github.com/repos/project-thomas/thomas-core/actions/variables/CURRENT_VERSION"))
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("Authorization", "Bearer ${System.getenv("GH_TOKEN")}")
+        .method(
+            "PATCH", HttpRequest
+                .BodyPublishers
+                .ofString("{\"name\":\"CURRENT_VERSION\",\"value\":\"$newVersion\"}")
+        )
+        .build()
+
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+    if ((200..299).contains(response.statusCode())) {
+        println("${response.statusCode()}: Current version updated in github repository: $newVersion")
+    } else {
+        throw RuntimeException("Error updating current version in github repository: ${response.statusCode()}: ${response.body()}")
+    }
+}
+
+fun projectVersion(): String = currentVersion().versionByEnv()
 
 fun currentVersion(): String = System
     .getenv("CUR_VERSION")
     ?.takeIf { it.trim().isNotEmpty() }
-    ?: "1.-1.0"
+    ?: "1.0.0"
 
 fun String.incrementMinor(): String = this
     .split(".")
