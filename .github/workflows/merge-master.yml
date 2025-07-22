@@ -187,10 +187,7 @@ jobs:
           THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
           THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew sonar \
-            -Dsonar.projectVersion=${{ vars.CURRENT_VERSION }} \
-            -Dsonar.branch.name=master
+        run: ./gradlew sonar
 
   Publish-Release:
     name: Publish Release Artifacts

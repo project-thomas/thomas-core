@@ -219,11 +219,7 @@ jobs:
           THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
           THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew sonar \
-            -Dsonar.pullrequest.key=${{ github.event.number }} \
-            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+        run: ./gradlew sonar
 
   Create-Pull-Request:
     name: Create Pull Request
