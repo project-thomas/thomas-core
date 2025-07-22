@@ -117,7 +117,7 @@ jobs:
         env:
           THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
           THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
         run: ./gradlew sonar
 
   Versioning:
@@ -155,7 +155,7 @@ jobs:
       - name: Increment Version
         id: version
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
           CUR_VERSION: ${{ vars.CURRENT_VERSION }}
         run: |
           if [[ "${{ needs.validate-merge.outputs.is-feature }}" == "true" ]]; then
