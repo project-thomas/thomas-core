@@ -218,7 +218,7 @@ jobs:
         env:
           THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
           THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
         run: ./gradlew sonar
 
   Create-Pull-Request:
