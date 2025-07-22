@@ -1,0 +1,97 @@
+name: Feature Build and Analyze
+
+on:
+  push:
+    branches: [
+      "feature/**",
+      "fix/**"
+    ]
+
+jobs:
+
+  Setup:
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+  Build:
+    needs: [Setup]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+  Test:
+    needs: [Setup, Build]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Run Tests
+        run: ./gradlew test
+
+      - name: Generate Reports
+        run: ./gradlew koverVerify koverHtmlReport koverXmlReport
+
+  Quality-Gate:
+    needs: [Setup, Build, Test]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Quality Gate
+        env:
+          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
+          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
+        run: ./gradlew sonar
+
+  Create-Pull-Request:
+    needs: [Setup, Build, Test, Quality-Gate]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Create Pull Request
+        uses: thomaseizinger/create-pull-request@master
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          head: ${{ github.ref }}
+          base: develop
+          title: Pull Request from branch ${{ github.head_ref || github.ref_name }} to develop

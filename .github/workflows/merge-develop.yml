@@ -1,0 +1,145 @@
+name: Feature Build and Analyze
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+    types:
+      - closed
+
+jobs:
+
+  Setup:
+    if: github.event.pull_request.merged == true
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+  Build:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+  Test:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup, Build ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Run Tests
+        run: ./gradlew test
+
+      - name: Generate Reports
+        run: ./gradlew koverVerify koverHtmlReport koverXmlReport
+
+  Quality-Gate:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup, Build, Test ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Quality Gate
+        env:
+          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
+          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
+        run: ./gradlew sonar
+
+  Versioning:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup, Build, Test, Quality-Gate ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Increment Minor Version
+        if: startsWith(github.event.pull_request.head.ref, 'feature')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+        run: ./gradlew incrementMinorVersion
+
+      - name: Increment Patch Version
+        if: startsWith(github.event.pull_request.head.ref, 'fix')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+        run: ./gradlew incrementPatchVersion
+
+  Publish:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup, Build, Test, Quality-Gate, Versioning ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Publish Snapshot
+        env:
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+          ENVIRONMENT: DEVELOPMENT
+          REPSY_USERNAME: ${{secrets.REPSY_USERNAME}}
+          REPSY_PASSWORD: ${{secrets.REPSY_PASSWORD}}
+        run: ./gradlew publish
+
+  Create-Pull-Request:
+    if: github.event.pull_request.merged == true
+    needs: [ Setup, Build, Test, Quality-Gate ]
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Create Pull Request
+        uses: thomaseizinger/create-pull-request@master
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          head: develop
+          base: master
+          title: Pull Request from branch develop to master

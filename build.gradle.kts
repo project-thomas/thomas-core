@@ -191,13 +191,21 @@ publishing {
 }
 
 tasks.register("incrementMinorVersion") {
-
     description = "Increment Project Minor Version"
     group = "versioning"
+    incrementVersion { it.incrementVersion(1) }
+}
 
+tasks.register("incrementPatchVersion") {
+    description = "Increment Project Patch Version"
+    group = "versioning"
+    incrementVersion { it.incrementVersion(2) }
+}
+
+fun incrementVersion(inc: (String) -> String) {
     val currentVersion = currentVersion()
-    val newVersion = currentVersion.incrementMinor()
-    println("Increment Minor Version: $currentVersion -> $newVersion")
+    val newVersion = inc(currentVersion)
+    println("Increment Version: $currentVersion -> $newVersion")
 
     val client = HttpClient.newBuilder().build()
     val request = HttpRequest.newBuilder()
@@ -227,14 +235,11 @@ fun currentVersion(): String = System
     ?.takeIf { it.trim().isNotEmpty() }
     ?: "1.0.0"
 
-fun String.incrementMinor(): String = this
+fun String.incrementVersion(index: Int): String = this
     .split(".")
-    .let { versions ->
-        "${versions[0]}.${versions[1].toInt() + 1}.0"
-    }
-    .apply {
-        println("NEW VERSION: $this")
-    }
+    .mapIndexed { i, v -> if (i == index) v.toInt() + 1 else v.toInt() }
+    .joinToString(".")
+    .apply { println("NEW VERSION: $this") }
 
 fun String.versionByEnv(): String = this.let { ver ->
     val envType = System.getenv("ENVIRONMENT")
