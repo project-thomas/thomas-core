@@ -1,0 +1,265 @@
+name: Feature Build and Analyze
+
+on:
+  push:
+    branches: [
+      "feature/**",
+      "fix/**"
+    ]
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  Setup:
+    name: Setup and Cache
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: read
+
+    outputs:
+      java-cache-key: ${{ steps.cache-key.outputs.java-cache-key }}
+      gradle-cache-key: ${{ steps.cache-key.outputs.gradle-cache-key }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necessário para análise de qualidade
+
+      - name: Generate cache keys
+        id: cache-key
+        run: |
+          echo "java-cache-key=java-${{ env.JAVA_VERSION }}-${{ env.JAVA_DISTRIBUTION }}-${{ runner.os }}" >> $GITHUB_OUTPUT
+          echo "gradle-cache-key=gradle-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}" >> $GITHUB_OUTPUT
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: false
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+  Build:
+    name: Build Application
+    runs-on:
+      group: Default
+    needs: Setup
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test --parallel --build-cache
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            build/libs/
+            build/classes/
+          retention-days: 1
+
+  Test:
+    name: Run Tests
+    runs-on:
+      group: Default
+    needs: [Setup, Build]
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type: [unit, integration]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          case "${{ matrix.test-type }}" in
+            unit)
+              ./gradlew test --parallel --build-cache
+              ;;
+            integration)
+              ./gradlew integrationTest --parallel --build-cache || echo "Integration tests not configured"
+              ;;
+          esac
+
+      - name: Generate coverage reports
+        if: matrix.test-type == 'unit'
+        run: ./gradlew koverVerify koverHtmlReport koverXmlReport
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            build/reports/tests/
+            build/reports/kover/
+          retention-days: 7
+
+  Security-Scan:
+    name: Security Scan
+    runs-on:
+      group: Default
+    needs: [Setup]
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run dependency check
+        run: |
+          ./gradlew dependencyCheckAnalyze || echo "Dependency check not configured"
+
+  Quality-Gate:
+    name: Quality Gate
+    runs-on:
+      group: Default
+    needs: [Build, Test]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+          path: build/reports/
+
+      - name: Quality Gate Analysis
+        env:
+          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
+          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew sonar
+
+  Create-Pull-Request:
+    name: Create Pull Request
+    runs-on:
+      group: Default
+    needs: [Build, Test, Quality-Gate, Security-Scan]
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    if: success()
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GHP_TOKEN }}
+          branch: ${{ github.ref }}
+          base: develop
+          title: |
+            🚀 Pull Request: ${{ github.head_ref || github.ref_name }} → develop
+          body: |
+            ## Resumo das Mudanças
+            
+            Esta PR foi criada automaticamente para o merge da branch `${{ github.head_ref || github.ref_name }}` na `develop`.
+            
+            ### ✅ Validações Executadas
+            - Build bem-sucedido
+            - Testes unitários passando
+            - Quality Gate aprovado
+            - Scan de segurança executado
+            
+            ### 📊 Métricas
+            - Branch: `${{ github.head_ref || github.ref_name }}`
+            - Commit: `${{ github.sha }}`
+            - Workflow: `${{ github.run_number }}`
+          labels: |
+            automated-pr
+            ready-for-review

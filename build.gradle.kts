@@ -1,4 +1,7 @@
 import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.INSTRUCTION
@@ -17,6 +20,7 @@ plugins {
 }
 
 group = "com.thomas"
+version = projectVersion()
 
 java.sourceCompatibility = JavaVersion.valueOf(libs.versions.target.get())
 java.targetCompatibility = JavaVersion.valueOf(libs.versions.target.get())
@@ -107,8 +111,8 @@ sonar {
         property("sonar.projectName", "T.H.O.M.A.S. Core")
         property("sonar.projectKey", "thomas-core")
         property("sonar.login", System.getenv("THOMAS_CORE_SONAR_LOGIN"))
-        property("sonar.host.url", System.getenv("THOMAS_CORE_SONAR_URL"))
-        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/reportJvm.xml")
+        property("sonar.host.url", System.getenv("THOMAS_SONAR_URL"))
+        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/report.xml")
         property("sonar.verbose", true)
         property("sonar.qualitygate.wait", true)
         property(
@@ -184,4 +188,63 @@ publishing {
             }
         }
     }
+}
+
+tasks.register("incrementMinorVersion") {
+    description = "Increment Project Minor Version"
+    group = "versioning"
+    incrementVersion { it.incrementVersion(1) }
+}
+
+tasks.register("incrementPatchVersion") {
+    description = "Increment Project Patch Version"
+    group = "versioning"
+    incrementVersion { it.incrementVersion(2) }
+}
+
+fun incrementVersion(inc: (String) -> String) {
+    val currentVersion = currentVersion()
+    val newVersion = inc(currentVersion)
+    println("Increment Version: $currentVersion -> $newVersion")
+
+    val client = HttpClient.newBuilder().build()
+    val request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.github.com/repos/project-thomas/thomas-core/actions/variables/CURRENT_VERSION"))
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("Authorization", "Bearer ${System.getenv("GH_TOKEN")}")
+        .method(
+            "PATCH", HttpRequest
+                .BodyPublishers
+                .ofString("{\"name\":\"CURRENT_VERSION\",\"value\":\"$newVersion\"}")
+        )
+        .build()
+
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+    if ((200..299).contains(response.statusCode())) {
+        println("${response.statusCode()}: Current version updated in github repository: $newVersion")
+    } else {
+        throw RuntimeException("Error updating current version in github repository: ${response.statusCode()}: ${response.body()}")
+    }
+}
+
+fun projectVersion(): String = currentVersion().versionByEnv()
+
+fun currentVersion(): String = System
+    .getenv("CUR_VERSION")
+    ?.takeIf { it.trim().isNotEmpty() }
+    ?: "1.0.0"
+
+fun String.incrementVersion(index: Int): String = this
+    .split(".")
+    .mapIndexed { i, v -> if (i == index) v.toInt() + 1 else v.toInt() }
+    .joinToString(".")
+    .apply { println("NEW VERSION: $this") }
+
+fun String.versionByEnv(): String = this.let { ver ->
+    val envType = System.getenv("ENVIRONMENT")
+    println("GENERATION VERSION FOR ENVIRONMENT: $envType")
+    envType?.takeIf {
+        it.trim().isNotEmpty() && it == "PRODUCTION"
+    }?.let { ver } ?: "$ver-SNAPSHOT"
 }

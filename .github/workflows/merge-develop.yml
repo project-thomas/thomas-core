@@ -1,0 +1,285 @@
+name: Develop Integration Pipeline
+
+on:
+  pull_request:
+    branches: ["develop"]
+    types: [closed]
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  Validate-Merge:
+    name: Validate Merge Conditions
+    runs-on:
+      group: Default
+    if: github.event.pull_request.merged == true
+
+    outputs:
+      is-feature: ${{ steps.branch-info.outputs.is-feature }}
+      is-fix: ${{ steps.branch-info.outputs.is-fix }}
+      branch-name: ${{ steps.branch-info.outputs.branch-name }}
+
+    steps:
+      - name: Extract branch information
+        id: branch-info
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "is-feature=${{ startsWith(github.event.pull_request.head.ref, 'feature') }}" >> $GITHUB_OUTPUT
+          echo "is-fix=${{ startsWith(github.event.pull_request.head.ref, 'fix') }}" >> $GITHUB_OUTPUT
+
+  Build-and-Test:
+    name: Build and Test
+    runs-on:
+      group: Default
+    needs: [Validate-Merge]
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build and Test
+        run: |
+          ./gradlew clean build test --parallel --build-cache
+
+      - name: Generate Reports
+        run: |
+          ./gradlew koverVerify koverHtmlReport koverXmlReport
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            build/reports/
+            build/libs/
+          retention-days: 7
+
+  Quality-Analysis:
+    name: Quality Analysis
+    runs-on:
+      group: Default
+    needs: [Validate-Merge, Build-and-Test]
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Download build reports
+        uses: actions/download-artifact@v4
+        with:
+          name: build-reports
+          path: build/
+
+      - name: SonarQube Analysis
+        env:
+          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
+          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew sonar
+
+  Versioning:
+    name: Version Management
+    runs-on:
+      group: Default
+    needs: [Validate-Merge, Build-and-Test, Quality-Analysis]
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: write
+
+    outputs:
+      new-version: ${{ steps.version.outputs.new-version }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Increment Version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+        run: |
+          if [[ "${{ needs.validate-merge.outputs.is-feature }}" == "true" ]]; then
+            NEW_VERSION=$(./gradlew incrementMinorVersion -q --console=plain)
+          elif [[ "${{ needs.validate-merge.outputs.is-fix }}" == "true" ]]; then
+            ./gradlew incrementPatchVersion
+          else
+            echo "::error::Failing, reason: Unknown branch type, versioning failed: ${{ needs.validate-merge.outputs.branch-name }}"
+            exit 1
+          fi
+
+      - name: Create version tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.new-version }}-SNAPSHOT" -m "Version ${{ steps.version.outputs.new-version }}-SNAPSHOT"
+          git push origin "v${{ steps.version.outputs.new-version }}-SNAPSHOT"
+
+  Publish:
+    name: Publish Artifacts
+    runs-on:
+      group: Default
+    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning]
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Publish Snapshot
+        env:
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+          ENVIRONMENT: DEVELOPMENT
+          REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+          REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+        run: |
+          ./gradlew publish --build-cache
+
+  Create-Release-PR:
+    name: Create Release PR
+    runs-on:
+      group: Default
+    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning, Publish]
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Create Release Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GHP_TOKEN }}
+          branch: develop
+          base: master
+          title: |
+            🎉 Release v${{ vars.CURRENT_VERSION }}: develop → master
+          body: |
+            ## 🚀 Nova Release: v${{ vars.CURRENT_VERSION }}
+            
+            Esta PR prepara a release da versão `v${{ vars.CURRENT_VERSION }}` para produção.
+            
+            ### 📋 Resumo
+            - **Nova versão**: `${{ vars.CURRENT_VERSION }}`
+            - **Tipo de mudança**: ${{ needs.validate-merge.outputs.is-feature == 'true' && 'Feature' || 'Bugfix' }}
+            - **Branch origem**: `${{ needs.validate-merge.outputs.branch-name }}`
+            
+            ### ✅ Validações Executadas
+            - ✅ Build bem-sucedido
+            - ✅ Todos os testes passando
+            - ✅ Quality Gate aprovado
+            - ✅ Artefatos publicados
+            - ✅ Tag de versão criada
+            
+            ### 🔄 Próximos Passos
+            Após o merge desta PR:
+            1. Pipeline de produção será executado
+            2. Artefatos serão promovidos para produção
+            3. Release notes serão geradas automaticamente
+          labels: |
+            release
+            automated-pr
+            ready-for-review
+
+  Notification:
+    name: Send Notifications
+    runs-on:
+      group: Default
+    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning, Publish, Create-Release-PR]
+    if: always() && github.event.pull_request.merged == true
+
+    steps:
+      - name: Notify Success
+        if: needs.publish.result == 'success'
+        run: |
+          echo "🎉 Pipeline executado com sucesso!"
+          echo "Nova versão: ${{ vars.CURRENT_VERSION }}"
+          echo "Branch: ${{ needs.validate-merge.outputs.branch-name }}"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ Pipeline falhou!"
+          echo "Branch: ${{ needs.validate-merge.outputs.branch-name }}"
+          echo "Verifique os logs para mais detalhes."
