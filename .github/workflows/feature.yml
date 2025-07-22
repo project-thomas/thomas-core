@@ -38,3 +38,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUR_VERSION: ${{ vars.CURRENT_VERSION }}
         run: ./gradlew incrementMinorVersion
+        
