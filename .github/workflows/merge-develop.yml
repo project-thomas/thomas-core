@@ -121,17 +121,14 @@ jobs:
         run: ./gradlew sonar
 
   Versioning:
+    if: github.event.pull_request.merged == true
     name: Version Management
     runs-on:
       group: Default
-    needs: [Validate-Merge, Build-and-Test, Quality-Analysis]
-    if: github.event.pull_request.merged == true
+    needs: [ Validate-Merge, Build-and-Test, Quality-Analysis ]
 
     permissions:
       contents: write
-
-    outputs:
-      new-version: ${{ steps.version.outputs.new-version }}
 
     steps:
       - name: Checkout sources
@@ -152,28 +149,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Increment Version
-        id: version
+      - name: Increment Minor Version
+        if: startsWith(github.event.pull_request.head.ref, 'feature')
         env:
           GH_TOKEN: ${{ secrets.GHP_TOKEN }}
           CUR_VERSION: ${{ vars.CURRENT_VERSION }}
-        run: |
-          if [[ "${{ needs.validate-merge.outputs.is-feature }}" == "true" ]]; then
-            NEW_VERSION=$(./gradlew incrementMinorVersion -q --console=plain)
-          elif [[ "${{ needs.validate-merge.outputs.is-fix }}" == "true" ]]; then
-            ./gradlew incrementPatchVersion
-          else
-            echo "::error::Failing, reason: Unknown branch type, versioning failed: ${{ needs.validate-merge.outputs.branch-name }}"
-            exit 1
-          fi
+        run: ./gradlew incrementMinorVersion
 
-      - name: Create version tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.new-version }}-SNAPSHOT" -m "Version ${{ steps.version.outputs.new-version }}-SNAPSHOT"
-          git push origin "v${{ steps.version.outputs.new-version }}-SNAPSHOT"
-
+      - name: Increment Patch Version
+        if: startsWith(github.event.pull_request.head.ref, 'fix')
+        env:
+          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
+          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
+        run: ./gradlew incrementPatchVersion
+  
   Publish:
     name: Publish Artifacts
     runs-on:
