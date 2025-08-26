@@ -132,11 +132,4 @@ internal class SessionContextHolderTest {
         assertEquals(uuid, SessionContextHolder.currentToken)
     }
 
-    @Test
-    fun `When unit is set in a session, current unit should be returned`() {
-        val uuid = randomUUID()
-        SessionContextHolder.currentUnit = uuid
-        assertEquals(uuid, SessionContextHolder.currentUnit)
-    }
-
 }

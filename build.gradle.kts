@@ -1,7 +1,5 @@
+import com.thomas.project.task.versioning.currentVersion
 import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.INSTRUCTION
@@ -10,17 +8,19 @@ import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+
 plugins {
     alias(libs.plugins.kotlin.lang)
     alias(libs.plugins.test.fixtures)
     alias(libs.plugins.kotlinx.kover)
     alias(libs.plugins.sonarqube.scanner)
+    alias(libs.plugins.project.plugin)
     `maven-publish`
     java
 }
 
 group = "com.thomas"
-version = projectVersion()
+version = project.currentVersion
 
 java.sourceCompatibility = JavaVersion.valueOf(libs.versions.target.get())
 java.targetCompatibility = JavaVersion.valueOf(libs.versions.target.get())
@@ -29,9 +29,16 @@ kotlin {
     jvmToolchain(libs.versions.jdk.get().toInt())
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.valueOf(libs.versions.jvm.get()))
+        freeCompilerArgs.addAll(
+            "-Xjsr305=strict",
+            "-Xcontext-receivers",
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+        )
+    }
 }
 
 dependencies {
@@ -45,6 +52,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("file.encoding", "UTF-8")
+    systemProperty("user.timezone", "UTC")
+    maxHeapSize = "1g"
+
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 kover {
@@ -125,19 +140,6 @@ sonar {
     }
 }
 
-tasks.withType<KotlinCompile> {
-    compilerOptions.jvmTarget.set(JvmTarget.valueOf(libs.versions.jvm.get()))
-}
-
-tasks.named("sonar") {
-    dependsOn("koverXmlReport")
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -188,63 +190,4 @@ publishing {
             }
         }
     }
-}
-
-tasks.register("incrementMinorVersion") {
-    description = "Increment Project Minor Version"
-    group = "versioning"
-    incrementVersion { it.incrementVersion(1) }
-}
-
-tasks.register("incrementPatchVersion") {
-    description = "Increment Project Patch Version"
-    group = "versioning"
-    incrementVersion { it.incrementVersion(2) }
-}
-
-fun incrementVersion(inc: (String) -> String) {
-    val currentVersion = currentVersion()
-    val newVersion = inc(currentVersion)
-    println("Increment Version: $currentVersion -> $newVersion")
-
-    val client = HttpClient.newBuilder().build()
-    val request = HttpRequest.newBuilder()
-        .uri(URI.create("https://api.github.com/repos/project-thomas/thomas-core/actions/variables/CURRENT_VERSION"))
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("Authorization", "Bearer ${System.getenv("GH_TOKEN")}")
-        .method(
-            "PATCH", HttpRequest
-                .BodyPublishers
-                .ofString("{\"name\":\"CURRENT_VERSION\",\"value\":\"$newVersion\"}")
-        )
-        .build()
-
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-    if ((200..299).contains(response.statusCode())) {
-        println("${response.statusCode()}: Current version updated in github repository: $newVersion")
-    } else {
-        throw RuntimeException("Error updating current version in github repository: ${response.statusCode()}: ${response.body()}")
-    }
-}
-
-fun projectVersion(): String = currentVersion().versionByEnv()
-
-fun currentVersion(): String = System
-    .getenv("CUR_VERSION")
-    ?.takeIf { it.trim().isNotEmpty() }
-    ?: "1.0.0"
-
-fun String.incrementVersion(index: Int): String = this
-    .split(".")
-    .mapIndexed { i, v -> if (i == index) v.toInt() + 1 else v.toInt() }
-    .joinToString(".")
-    .apply { println("NEW VERSION: $this") }
-
-fun String.versionByEnv(): String = this.let { ver ->
-    val envType = System.getenv("ENVIRONMENT")
-    println("GENERATION VERSION FOR ENVIRONMENT: $envType")
-    envType?.takeIf {
-        it.trim().isNotEmpty() && it == "PRODUCTION"
-    }?.let { ver } ?: "$ver-SNAPSHOT"
 }

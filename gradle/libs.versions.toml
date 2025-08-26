@@ -6,6 +6,7 @@ jdk = "21"
 target = "VERSION_21"
 kover = "0.9.1"
 sonarqube = "6.2.0.5505"
+project-plugin = "1.0.0"
 
 logback-classic = "1.5.18"
 logback-kotlin = "7.0.7"
@@ -30,6 +31,7 @@ kotlin-lang = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 test-fixtures = { id = "java-test-fixtures" }
 kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 sonarqube-scanner = { id = "org.sonarqube", version.ref = "sonarqube" }
+project-plugin = { id = "com.thomas.project-plugin", version.ref = "project-plugin" }
 
 [libraries]
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }

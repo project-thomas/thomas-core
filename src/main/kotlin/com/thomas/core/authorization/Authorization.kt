@@ -6,7 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 
 suspend fun <T> authorized(
-    roles: Array<SecurityRole<*, *, *>> = arrayOf(),
+    roles: Set<SecurityRole> = setOf(),
     block: suspend CoroutineScope.() -> T
 ): T = coroutineScope {
     if (roles.isAuthorized()) {
@@ -16,5 +16,5 @@ suspend fun <T> authorized(
     }
 }
 
-private fun Array<SecurityRole<*, *, *>>.isAuthorized(): Boolean =
-    this@isAuthorized.isEmpty() || currentUser.currentRoles.intersect(this@isAuthorized.toSet()).isNotEmpty()
+private fun Set<SecurityRole>.isAuthorized(): Boolean =
+    this@isAuthorized.isEmpty() || currentUser.securityRoles.intersect(this@isAuthorized.toSet()).isNotEmpty()

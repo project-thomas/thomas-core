@@ -2,7 +2,6 @@ package com.thomas.core.exception
 
 enum class ErrorType {
 
-    UNRESOLVED_ORGANIZATION,
     UNAUTHENTICATED_USER,
     UNAUTHORIZED_ACTION,
     INVALID_ENTITY,

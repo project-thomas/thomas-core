@@ -9,7 +9,6 @@ data class CoroutineSessionContext(
 
     companion object Key : CoroutineContext.Key<CoroutineSessionContext>
 
-    // provide the key of the corresponding context element
     override val key: CoroutineContext.Key<CoroutineSessionContext>
         get() = Key
 
@@ -19,7 +18,6 @@ data class CoroutineSessionContext(
         return oldContext
     }
 
-    // this is invoked after coroutine has suspended on current thread
     override fun restoreThreadContext(context: CoroutineContext, oldState: SessionContext) {
         SessionContextHolder.context = oldState
     }

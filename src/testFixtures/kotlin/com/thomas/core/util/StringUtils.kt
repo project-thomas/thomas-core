@@ -33,9 +33,9 @@ object StringUtils {
     }
 
     fun randomPassword(): String = PASSWORD_UPPER.random().toString() +
-            (1..3).map { PASSWORD_LOWER.random() }.joinToString(separator = "") +
-            PASSWORD_SYMBOLS.random().toString() +
-            (1..3).map { NUMBERS.random() }.joinToString(separator = "")
+        (1..3).map { PASSWORD_LOWER.random() }.joinToString(separator = "") +
+        PASSWORD_SYMBOLS.random().toString() +
+        (1..3).map { NUMBERS.random() }.joinToString(separator = "")
 
     private fun String.calculateDigits(
         weights: List<Int>,

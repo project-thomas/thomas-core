@@ -3,54 +3,59 @@ package com.thomas.core.model.security
 import com.thomas.core.i18n.BundleResolver
 import com.thomas.core.model.security.SecurityRole.RoleStringsI18N.coreRolesDescription
 import com.thomas.core.model.security.SecurityRole.RoleStringsI18N.coreRolesName
+import com.thomas.core.model.security.SecurityRoleCategory.MANAGEMENT_GROUP
+import com.thomas.core.model.security.SecurityRoleCategory.MANAGEMENT_USER
+import com.thomas.core.model.security.SecurityRoleCategory.MASTER_CATEGORY
+import com.thomas.core.model.security.SecurityRoleCategory.ADMINISTRATION_CATEGORY
 
-interface SecurityRole<R, S, G> where
-G : SecurityRoleGroup<R, S, G>,
-S : SecurityRoleSubgroup<R, S, G>,
-R : SecurityRole<R, S, G>,
-R : Enum<R>,
-S : Enum<S>,
-G : Enum<G> {
+enum class SecurityRole(
+    val roleCode: Int,
+    val roleOrder: Int,
+    val roleSubgroup: SecurityRoleCategory,
+    val roleDisplayable: Boolean,
+) {
 
-    val name: String
+    MASTER_USER(0, 1, MASTER_CATEGORY, false),
 
-    val roleCode: Int
+    ADMINISTRATOR_USER(1, 1, ADMINISTRATION_CATEGORY, true),
 
-    val roleOrder: Int
+    USER_READ(2, 1, MANAGEMENT_USER, true),
+    USER_CREATE(3, 2, MANAGEMENT_USER, true),
+    USER_UPDATE(4, 3, MANAGEMENT_USER, true),
 
-    val roleSubgroup: S
+    GROUP_READ(5, 1, MANAGEMENT_GROUP, true),
+    GROUP_CREATE(6, 2, MANAGEMENT_GROUP, true),
+    GROUP_UPDATE(7, 3, MANAGEMENT_GROUP, true),
+    GROUP_DELETE(8, 4, MANAGEMENT_GROUP, true);
 
-    val roleDisplayable: Boolean
+    companion object {
+
+        private val ROLES_MAP: Map<Int, SecurityRole> = entries.associateBy { it.roleCode }
+
+        fun byCode(code: Int): SecurityRole? = ROLES_MAP[code]
+
+    }
 
     val roleName: String
-        get() = coreRolesName(
-            this.roleSubgroup.subgroupGroup.groupCategory.name.lowercase(),
-            this.name.lowercase(),
-        )
+        get() = coreRolesName(this.name.lowercase())
 
     val roleDescription: String
-        get() = coreRolesDescription(
-            this.roleSubgroup.subgroupGroup.groupCategory.name.lowercase(),
-            this.name.lowercase(),
-        )
+        get() = coreRolesDescription(this.name.lowercase())
 
     object RoleStringsI18N : BundleResolver("strings/core-roles") {
 
         fun coreRolesName(
-            category: String,
             role: String
-        ): String = coreRolesString(category, role, "name")
+        ): String = coreRolesString(role, "name")
 
         fun coreRolesDescription(
-            category: String,
             role: String
-        ): String = coreRolesString(category, role, "description")
+        ): String = coreRolesString(role, "description")
 
         private fun coreRolesString(
-            category: String,
             role: String,
             attribute: String
-        ): String = formattedMessage("security.role.$category.$role.$attribute")
+        ): String = formattedMessage("security.role.$role.$attribute")
 
     }
 

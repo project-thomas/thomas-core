@@ -2,7 +2,6 @@ package com.thomas.core.context
 
 import com.thomas.core.model.security.SecurityUser
 import java.util.Locale
-import java.util.UUID
 
 object SessionContextHolder {
 
@@ -31,15 +30,6 @@ object SessionContextHolder {
         set(value) {
             context.currentLocale = value
         }
-
-    var currentUnit: UUID?
-        get() = context.currentUnit
-        set(value) {
-            context.currentUnit = value
-        }
-
-    val currentOrganization: UUID
-        get() = context.currentOrganization
 
     fun getSessionProperty(property: String): String? = context.getProperty(property)
 

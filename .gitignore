@@ -1,56 +1,84 @@
-HELP.md
-.gradle
+# Dependency Lock Files
+dependency-locks/
+
+# Build Output
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+out/
+target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IDE Files
+.idea/
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
+*.iws
 .vscode/
-/nico.iml
-/config/neo4j/plugins/
-/config/neo4j/conf/
-/config/neo4j/logs/
-/config/neo4j/data/
+.settings/
+.project
+.classpath
 
-/module/management/config/neo4j/conf/
-/module/management/config/neo4j/data/
-/module/management/config/neo4j/logs/
-/module/management/config/zookeeper/data/
-/module/management/config/zookeeper/logs/
-/module/management/config/zookeeper/secrets/
-/module/management/config/kafka/broker-01/data/
-/module/management/config/kafka/broker-01/secrets/
-/module/management/config/kafka/broker-02/data/
-/module/management/config/kafka/broker-02/secrets/
-/module/management/config/kafka/broker-03/data/
-/module/management/config/kafka/broker-03/secrets/
-/module/management/config/rabbitmq/data/
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage Reports
+.nyc_output/
+coverage/
+*.lcov
+
+# Dependency directories
+node_modules/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Secrets
+secrets.properties
+*.key
+*.pem
+*.p12
+*.keystore
+
+# Temporary Files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Archive Files
+*.tar.gz
+*.zip
+*.rar
+
+# Eclipse
+.metadata/
+.workspace/
+
+# Test Results
+test-results/
+test-output/
+/build-cache/

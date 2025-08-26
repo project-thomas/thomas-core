@@ -1,274 +1,120 @@
-name: Develop Integration Pipeline
+name: Develop Branch Integration
 
 on:
-  pull_request:
-    branches: ["develop"]
-    types: [closed]
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
-  Validate-Merge:
-    name: Validate Merge Conditions
-    runs-on:
-      group: Default
-    if: github.event.pull_request.merged == true
-
-    outputs:
-      is-feature: ${{ steps.branch-info.outputs.is-feature }}
-      is-fix: ${{ steps.branch-info.outputs.is-fix }}
-      branch-name: ${{ steps.branch-info.outputs.branch-name }}
-
-    steps:
-      - name: Extract branch information
-        id: branch-info
-        run: |
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "is-feature=${{ startsWith(github.event.pull_request.head.ref, 'feature') }}" >> $GITHUB_OUTPUT
-          echo "is-fix=${{ startsWith(github.event.pull_request.head.ref, 'fix') }}" >> $GITHUB_OUTPUT
-
-  Build-and-Test:
-    name: Build and Test
-    runs-on:
-      group: Default
-    needs: [Validate-Merge]
-    if: github.event.pull_request.merged == true
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
+      checks: write
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: develop
-          fetch-depth: 0
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+    - name: Run comprehensive tests
+      run: ./gradlew clean test integrationTest --no-daemon --parallel
 
-      - name: Build and Test
-        run: |
-          ./gradlew clean build test --parallel --build-cache
+    - name: Generate coverage report
+      run: ./gradlew koverXmlReport --no-daemon
 
-      - name: Generate Reports
-        run: |
-          ./gradlew koverVerify koverHtmlReport koverXmlReport
+    - name: Verify quality gates
+      run: ./gradlew koverVerify --no-daemon
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-reports
-          path: |
-            build/reports/
-            build/libs/
-          retention-days: 7
+    - name: Build snapshot
+      run: ./gradlew build -Pversion=${{ github.sha }}-SNAPSHOT --no-daemon
 
-  Quality-Analysis:
-    name: Quality Analysis
-    runs-on:
-      group: Default
-    needs: [Validate-Merge, Build-and-Test]
-    if: github.event.pull_request.merged == true
+    - name: Publish snapshot
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+      run: ./gradlew publish -Pversion=${{ github.sha }}-SNAPSHOT --no-daemon
 
-    permissions:
-      contents: read
+    - name: Notify development team
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Develop branch build failed - ${context.sha.substring(0, 7)}`,
+            body: `## Build Failure on Develop Branch
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: develop
-          fetch-depth: 0
+            **Commit:** \`${context.sha}\`
+            **Workflow:** ${context.workflow}
+            **Run:** [${context.runNumber}](${context.payload.repository.html_url}/actions/runs/${context.runId})
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
+            Please investigate and fix the failing tests.`,
+            labels: ['bug', 'ci-failure']
+          });
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Download build reports
-        uses: actions/download-artifact@v4
-        with:
-          name: build-reports
-          path: build/
-
-      - name: SonarQube Analysis
-        env:
-          THOMAS_CORE_SONAR_LOGIN: ${{ secrets.CORE_SONAR_LOGIN }}
-          THOMAS_SONAR_URL: ${{ secrets.SONAR_URL }}
-          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
-        run: ./gradlew sonar
-
-  Versioning:
-    if: github.event.pull_request.merged == true
-    name: Version Management
-    runs-on:
-      group: Default
-    needs: [ Validate-Merge, Build-and-Test, Quality-Analysis ]
-
-    permissions:
-      contents: write
+  dependency-check:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: develop
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+    - name: Generate dependency report
+      run: ./gradlew dependencyUpdates --no-daemon
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-updates-report
+        path: build/dependencyUpdates/
 
-      - name: Increment Minor Version
-        if: startsWith(github.event.pull_request.head.ref, 'feature')
-        env:
-          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
-          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
-        run: ./gradlew incrementMinorVersion
-
-      - name: Increment Patch Version
-        if: startsWith(github.event.pull_request.head.ref, 'fix')
-        env:
-          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
-          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
-        run: ./gradlew incrementPatchVersion
-
-  Publish:
-    name: Publish Artifacts
-    runs-on:
-      group: Default
-    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning]
-    if: github.event.pull_request.merged == true
-
-    permissions:
-      contents: read
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: develop
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Publish Snapshot
-        env:
-          CUR_VERSION: ${{ vars.CURRENT_VERSION }}
-          ENVIRONMENT: DEVELOPMENT
-          REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
-          REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
-        run: |
-          ./gradlew publish --build-cache
-
-  Create-Release-PR:
-    name: Create Release PR
-    runs-on:
-      group: Default
-    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning, Publish]
-    if: github.event.pull_request.merged == true
-
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Create Release Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GHP_TOKEN }}
-          branch: develop
-          base: master
-          title: |
-            🎉 Release v${{ vars.CURRENT_VERSION }}: develop → master
-          body: |
-            ## 🚀 Nova Release: v${{ vars.CURRENT_VERSION }}
-            
-            Esta PR prepara a release da versão `v${{ vars.CURRENT_VERSION }}` para produção.
-            
-            ### 📋 Resumo
-            - **Nova versão**: `${{ vars.CURRENT_VERSION }}`
-            - **Tipo de mudança**: ${{ needs.validate-merge.outputs.is-feature == 'true' && 'Feature' || 'Bugfix' }}
-            - **Branch origem**: `${{ needs.validate-merge.outputs.branch-name }}`
-            
-            ### ✅ Validações Executadas
-            - ✅ Build bem-sucedido
-            - ✅ Todos os testes passando
-            - ✅ Quality Gate aprovado
-            - ✅ Artefatos publicados
-            - ✅ Tag de versão criada
-            
-            ### 🔄 Próximos Passos
-            Após o merge desta PR:
-            1. Pipeline de produção será executado
-            2. Artefatos serão promovidos para produção
-            3. Release notes serão geradas automaticamente
-          labels: |
-            release
-            automated-pr
-            ready-for-review
-
-  Notification:
-    name: Send Notifications
-    runs-on:
-      group: Default
-    needs: [Validate-Merge, Build-and-Test, Quality-Analysis, Versioning, Publish, Create-Release-PR]
-    if: always() && github.event.pull_request.merged == true
-
-    steps:
-      - name: Notify Success
-        if: needs.publish.result == 'success'
-        run: |
-          echo "🎉 Pipeline executado com sucesso!"
-          echo "Nova versão: ${{ vars.CURRENT_VERSION }}"
-          echo "Branch: ${{ needs.validate-merge.outputs.branch-name }}"
-
-      - name: Notify Failure
-        if: failure()
-        run: |
-          echo "❌ Pipeline falhou!"
-          echo "Branch: ${{ needs.validate-merge.outputs.branch-name }}"
-          echo "Verifique os logs para mais detalhes."
+    - name: SonarQube Scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        THOMAS_CORE_SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
+        THOMAS_SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
+      run: ./gradlew sonar --no-daemon

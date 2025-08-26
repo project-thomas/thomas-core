@@ -3,8 +3,6 @@ package com.thomas.core.context
 import com.thomas.core.context.SessionContextHolder.clearContext
 import com.thomas.core.context.SessionContextHolder.context
 import com.thomas.core.context.SessionContextHolder.currentLocale
-import com.thomas.core.context.SessionContextHolder.currentOrganization
-import com.thomas.core.context.SessionContextHolder.currentUnit
 import com.thomas.core.context.SessionContextHolder.currentUser
 import com.thomas.core.context.SessionContextHolder.getSessionProperty
 import com.thomas.core.context.SessionContextHolder.setSessionProperty
@@ -32,31 +30,25 @@ internal class SessionContextTest {
 
     @Test
     fun `Clear session context`() {
-        val unitId = randomUUID()
         val propOne = "prop_one"
         val propTwo = "prop_two"
         val propValue = "value_two"
 
         currentUser = user
         currentLocale = FRENCH
-        currentUnit = unitId
 
         setSessionProperty(propOne, null)
         setSessionProperty(propTwo, propValue)
 
         assertEquals(user, context.currentUser)
         assertEquals(FRENCH, context.currentLocale)
-        assertEquals(unitId, context.currentUnit)
-        assertEquals(user.securityOrganization.organizationId, context.currentOrganization)
         assertNull(getSessionProperty(propOne))
         assertEquals(propValue, getSessionProperty(propTwo))
 
         clearContext()
 
         assertThrows<UnauthenticatedUserException> { currentUser }
-        assertThrows<UnresolvedOrganizationException> { currentOrganization }
         assertEquals(ROOT, currentLocale)
-        assertNull(currentUnit)
         assertNull(getSessionProperty(propOne))
         assertNull(getSessionProperty(propTwo))
     }
@@ -88,22 +80,6 @@ internal class SessionContextTest {
             SessionContext().apply {
                 currentUser = user
             }.currentUser
-        }
-    }
-
-    @Test
-    fun `When no user is set, organization should throws exception`() {
-        assertThrows(UnresolvedOrganizationException::class.java) {
-            SessionContext().currentOrganization
-        }
-    }
-
-    @Test
-    fun `When user is set, organization should returns the organization id`() {
-        assertDoesNotThrow {
-            SessionContext().apply {
-                currentUser = user
-            }.currentOrganization
         }
     }
 
