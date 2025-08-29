@@ -48,7 +48,7 @@ log-logback-classic = { module = "ch.qos.logback:logback-classic", version.ref =
 log-logback-kotlin = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "logback-kotlin" }
 
 aspectj-core = { module = "org.aspectj:aspectjrt", version.ref = "aspectj" }
-aspectj-tools = { module = "org.aspectj:aspectjtools", version.ref = "aspectj" }
+aspectj-weaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectj" }
 
 junit-jupiter-pioneer = { module = "org.junit-pioneer:junit-pioneer", version.ref = "junit-pioneer" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
@@ -88,7 +88,7 @@ log-logback-all = [
 
 aspectj-all = [
     "aspectj-core",
-    "aspectj-tools",
+    "aspectj-weaver",
 ]
 
 junit-all = [

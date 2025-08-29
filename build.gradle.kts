@@ -1,4 +1,5 @@
 import com.thomas.project.task.versioning.currentVersion
+import io.freefair.gradle.plugins.aspectj.AjcAction
 import java.net.URI
 import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
@@ -17,6 +18,7 @@ plugins {
     alias(libs.plugins.project.plugin)
     `maven-publish`
     java
+    id("io.freefair.aspectj.post-compile-weaving") version "8.14.2"
 }
 
 group = "com.thomas"
@@ -30,16 +32,43 @@ kotlin {
 }
 
 tasks.withType<KotlinCompile> {
+    configure<AjcAction> {
+        enabled = true
+        classpath
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+            )
+        }
+    }
     compilerOptions {
         jvmTarget.set(JvmTarget.valueOf(libs.versions.jvm.get()))
         freeCompilerArgs.addAll(
             "-Xjsr305=strict",
             "-Xcontext-receivers",
             "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-java-parameters",
         )
     }
 }
+
+tasks.named("compileTestKotlin", KotlinCompile::class) {
+    configure<AjcAction> {
+        enabled = true
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            aspectpath.from("${layout.buildDirectory.get()}/classes/kotlin/main")
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+            )
+        }
+    }
+}
+
 
 dependencies {
     implementation(libs.bundles.kotlin.stdlib.all)

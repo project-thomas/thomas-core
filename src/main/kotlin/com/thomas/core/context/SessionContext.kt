@@ -26,6 +26,8 @@ data class SessionContext(
         sessionProperties[property] = value
     }
 
+    internal fun sessionProperties(): Map<String, String?> = sessionProperties
+
     internal fun clear() {
         _currentUser = null
         currentLocale = ROOT
