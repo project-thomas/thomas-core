@@ -80,7 +80,7 @@ class MethodAspect {
             "${TWO_TAB_LINE}Locale -> ${currentLocale.toLanguageTag()}",
         ) + sessionProperties().map {
             "${TWO_TAB_LINE}${it.key} -> ${it.value}"
-        }).joinToString("")
+        }.sorted()).joinToString("")
     } else {
         EMPTY_STRING_VALUE
     }

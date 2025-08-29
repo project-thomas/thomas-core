@@ -3,9 +3,11 @@ package com.thomas.core.aspect
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.thomas.core.context.SessionContextHolder
 import com.thomas.core.context.SessionContextHolder.clearContext
 import com.thomas.core.context.SessionContextHolder.currentLocale
 import com.thomas.core.context.SessionContextHolder.currentUser
+import com.thomas.core.context.SessionContextHolder.sessionProperties
 import com.thomas.core.context.SessionContextHolder.setSessionProperty
 import com.thomas.core.extension.toSecondsPattern
 import com.thomas.core.generator.UserGenerator.generateSecurityUser
@@ -57,9 +59,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val passwordParam = randomString(spaces = false)
@@ -84,7 +84,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.processData" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> password: String = **********" +
@@ -105,9 +104,7 @@ class MethodAspectTest {
         currentLocale = randomLocale()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val passwordParam = randomString(spaces = false)
@@ -130,7 +127,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> anonymous" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.processData" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> password: String = **********" +
@@ -189,9 +185,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val valueParam = randomInteger()
@@ -212,7 +206,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.withoutParameters" +
             "${lineSeparator()}\t\t      return -> type: AspectData = $returnValue" +
             "${lineSeparator()}\tDuration (second.nano) -> $totalDuration"
@@ -227,9 +220,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val valueParam = randomInteger()
@@ -250,7 +241,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.withoutDuration" +
             "${lineSeparator()}\t\tparameter[0] -> value: int = $valueParam" +
             "${lineSeparator()}\t\tparameter[1] -> username: String = $usernameParam" +
@@ -267,9 +257,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val passwordParam = randomString(spaces = false)
@@ -299,7 +287,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.maskingResult" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> password: String = **********" +
@@ -357,9 +344,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
 
@@ -372,7 +357,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.defaultValues" +
             "${lineSeparator()}\t\tparameter[0] -> value: int = ${result.value}" +
             "${lineSeparator()}\t\tparameter[1] -> username: String = ${result.description}" +
@@ -390,9 +374,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val dataParam = listOf(randomString(spaces = false), null).random()
@@ -412,7 +394,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.defaultAnnotation" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> userData: String = $dataParam" +
@@ -430,9 +411,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val dataParam = listOf(randomString(spaces = false), null).random()
@@ -454,7 +433,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.proceedException" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> userData: String = $dataParam" +
@@ -472,9 +450,7 @@ class MethodAspectTest {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
-        val prop02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
 
         val usernameParam = randomString(spaces = false)
         val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
@@ -492,7 +468,6 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
             "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.unitReturn" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> userData: String = null" +
@@ -511,8 +486,9 @@ class MethodAspectTest {
         val prop01 = randomString(spaces = false)
         val value01 = randomString(spaces = false)
         val prop02 = randomString(spaces = false)
+        val value02 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
+        setSessionProperty(prop02, value02)
 
         val usernameParam = randomString(spaces = false)
         val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
@@ -527,12 +503,15 @@ class MethodAspectTest {
             )
         }
 
+        val propsLog = sessionProperties().map { (k, v) ->
+            "${lineSeparator()}\t\t$k -> $v"
+        }.sorted().joinToString(separator = "")
+
         val expected = "${lineSeparator()}Method Logging" +
             "${lineSeparator()}\tMetadata -> " +
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
-            "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
+            propsLog +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.unitReturnException" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> userData: String = null" +
@@ -549,10 +528,20 @@ class MethodAspectTest {
     fun `Log method with null return`() {
         currentUser = generateSecurityUser()
         val prop01 = randomString(spaces = false)
-        val value01 = randomString(spaces = false)
         val prop02 = randomString(spaces = false)
+        val prop03 = randomString(spaces = false)
+        val prop04 = randomString(spaces = false)
+        val prop05 = randomString(spaces = false)
+        val value01 = randomString(spaces = false)
+        val value02 = randomString(spaces = false)
+        val value03 = randomString(spaces = false)
+        val value04 = randomString(spaces = false)
+        val value05 = randomString(spaces = false)
         setSessionProperty(prop01, value01)
-        setSessionProperty(prop02, null)
+        setSessionProperty(prop02, value02)
+        setSessionProperty(prop03, value03)
+        setSessionProperty(prop04, value04)
+        setSessionProperty(prop05, value05)
 
         val usernameParam = randomString(spaces = false)
         val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
@@ -565,12 +554,15 @@ class MethodAspectTest {
             isActive = null,
         )
 
+        val propsLog = sessionProperties().map { (k, v) ->
+            "${lineSeparator()}\t\t$k -> $v"
+        }.sorted().joinToString(separator = "")
+
         val expected = "${lineSeparator()}Method Logging" +
             "${lineSeparator()}\tMetadata -> " +
             "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
             "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
-            "${lineSeparator()}\t\t$prop01 -> $value01" +
-            "${lineSeparator()}\t\t$prop02 -> null" +
+            propsLog +
             "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.nullReturn" +
             "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
             "${lineSeparator()}\t\tparameter[1] -> userData: String = null" +

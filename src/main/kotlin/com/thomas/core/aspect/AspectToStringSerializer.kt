@@ -10,12 +10,15 @@ internal class AspectToStringSerializer : AspectSerializer {
     override fun serialize(
         value: Any?,
         masked: Boolean,
-    ): String = value?.let { v ->
-        v.takeIf {
-            it is Throwable
-        }?.let {
-            "${it.javaClass.simpleName}(${(it as Throwable).message})"
-        } ?: (MASKED_VALUE_PLACEHOLDER.takeIf { masked } ?: v.toString())
-    } ?: NULL_VALUE_PLACEHOLDER
+    ): String = when {
+        value == null -> NULL_VALUE_PLACEHOLDER
+        value is Throwable -> formatThrowable(value)
+        masked -> MASKED_VALUE_PLACEHOLDER
+        else -> value.toString()
+    }
+
+    private fun formatThrowable(
+        throwable: Throwable
+    ): String = "${throwable.javaClass.simpleName}(${throwable.message})"
 
 }

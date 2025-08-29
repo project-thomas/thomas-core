@@ -1,5 +1,6 @@
 package com.thomas.core.extension
 
+import com.thomas.core.context.SessionContextHolder
 import com.thomas.core.model.entity.BaseEntity
 import com.thomas.core.model.entity.DeferredEntityValidation
 import com.thomas.core.model.entity.DeferredEntityValidationContext.Companion.EMPTY
@@ -9,17 +10,35 @@ import com.thomas.core.model.entity.EntityValidationException
 import com.thomas.core.util.StringUtils.randomString
 import java.util.UUID
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BaseEntityExtensionTest {
+
+    private val testDispatcher = StandardTestDispatcher()
+    private val testScope = TestScope(testDispatcher)
+
+    @BeforeEach
+    fun setUp() {
+        SessionContextHolder.clearContext()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        SessionContextHolder.clearContext()
+    }
 
     companion object {
 
@@ -71,7 +90,7 @@ class BaseEntityExtensionTest {
     )
 
     @Test
-    fun `Validate entity async`() = runTest(StandardTestDispatcher()) {
+    fun `Validate entity async`() = testScope.runTest {
         assertDoesNotThrow {
             validations.validate(TestEntity(), "Entity has errors")
         }
@@ -83,7 +102,7 @@ class BaseEntityExtensionTest {
         entity: TestEntity,
         attribute: String,
         errors: List<String>,
-    ) = runTest(StandardTestDispatcher()) {
+    ) = testScope.runTest {
         val exception = assertThrows<EntityValidationException> {
             validations.validate(entity, "Entity ${entity.id} has errors")
         }
@@ -94,7 +113,7 @@ class BaseEntityExtensionTest {
     }
 
     @Test
-    fun `Validate entity async with multiple errors`() = runTest(StandardTestDispatcher()) {
+    fun `Validate entity async with multiple errors`() = testScope.runTest {
         val entity = TestEntity(name = " ", email = "qwerty")
         val exception = assertThrows<EntityValidationException> {
             validations.validate(entity, "Entity ${entity.id} has errors")
