@@ -1,6 +1,7 @@
 package com.thomas.core.context
 
 import com.thomas.core.extension.withSessionContext
+import com.thomas.core.generator.UserGenerator.generateSecurityUser
 import com.thomas.core.model.security.SecurityUser
 import io.mockk.every
 import io.mockk.mockk
@@ -510,6 +511,66 @@ class SessionContextTest {
         assertNotSame(originalContext, withPropsContext)
         assertEquals(mapOf("original" to "value"), originalContext.sessionProperties)
         assertEquals(newProperties, withPropsContext.sessionProperties)
+    }
+
+    @Test
+    fun `should test hashCode with non-null currentUser`() {
+        val user = generateSecurityUser()
+
+        // Test hashCode when currentUser is not null (covers currentUser?.hashCode() ?: 0 branch)
+        val context1 = SessionContext.create(user = user)
+        val context2 = SessionContext.create(user = user)
+
+        // Same user should produce same hashCode
+        assertEquals(context1.hashCode(), context2.hashCode())
+
+        // Different user should produce different hashCode
+        val differentUser = generateSecurityUser()
+        val context3 = SessionContext.create(user = differentUser)
+
+        assertNotEquals(context1.hashCode(), context3.hashCode())
+
+        // Context with null user should have different hashCode than context with user
+        val contextWithNullUser = SessionContext.empty()
+        assertNotEquals(context1.hashCode(), contextWithNullUser.hashCode())
+    }
+
+    @Test
+    fun `should test hashCode with non-null currentToken`() {
+        // Test hashCode when currentToken is not null (covers currentToken?.hashCode() ?: 0 branch)
+        val context1 = SessionContext.create(token = "test-token-123")
+        val context2 = SessionContext.create(token = "test-token-123")
+
+        // Same token should produce same hashCode
+        assertEquals(context1.hashCode(), context2.hashCode())
+
+        // Different token should produce different hashCode
+        val context3 = SessionContext.create(token = "different-token-456")
+        assertNotEquals(context1.hashCode(), context3.hashCode())
+
+        // Context with null token should have different hashCode than context with token
+        val contextWithNullToken = SessionContext.empty()
+        assertNotEquals(context1.hashCode(), contextWithNullToken.hashCode())
+    }
+
+    @Test
+    fun `should test hashCode with all combinations of nullable fields`() {
+        val user = generateSecurityUser()
+
+        // Test all combinations of null/non-null for currentUser and currentToken
+        val context1 = SessionContext.create(user = null, token = null) // both null
+        val context2 = SessionContext.create(user = user, token = null) // user non-null, token null
+        val context3 = SessionContext.create(user = null, token = "token") // user null, token non-null
+        val context4 = SessionContext.create(user = user, token = "token") // both non-null
+
+        // All should have different hashCodes
+        val hashCodes = setOf(context1.hashCode(), context2.hashCode(), context3.hashCode(), context4.hashCode())
+        assertEquals(4, hashCodes.size, "All combinations should produce different hashCodes")
+
+        // Verify specific branches are covered
+        assertNotEquals(context1.hashCode(), context2.hashCode()) // Tests currentUser?.hashCode() branch
+        assertNotEquals(context1.hashCode(), context3.hashCode()) // Tests currentToken?.hashCode() branch
+        assertNotEquals(context2.hashCode(), context4.hashCode()) // Tests both branches together
     }
 
 }

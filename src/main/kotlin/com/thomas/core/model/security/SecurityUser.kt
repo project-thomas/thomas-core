@@ -34,8 +34,6 @@ data class SecurityUser(
     override val securityRoles: Set<SecurityRole>
         get() = (userRoles + userGroups.map {
             it.securityRoles
-        }.flatten()).distinct().sortedBy {
-            it.roleOrder
-        }.toSet()
+        }.flatten()).distinct().toSet()
 
 }

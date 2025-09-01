@@ -199,6 +199,69 @@ class TypeExtensionTest {
         assertEquals("Void", result)
     }
 
+    @Test
+    fun `Simple typed name for WildcardType with empty upper bounds`() {
+        // Create a WildcardType with empty upper bounds to test the branch upperBounds.isNotEmpty() == false
+        val mockWildcardType = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = emptyArray() // This covers upperBounds.isEmpty() branch
+            override fun getLowerBounds(): Array<Type> = emptyArray() // Also empty lower bounds
+            override fun toString(): String = "?"
+        }
+
+        val result = mockWildcardType.simpleTypedName()
+        // When both upper and lower bounds are empty, it should return "Any" from the else branch
+        assertEquals("Any", result)
+    }
+
+    @Test
+    fun `Simple typed name for WildcardType with Any as upper bound`() {
+        // Create a WildcardType where upperBounds[0] == Any::class.java to test that specific branch
+        val mockWildcardType = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = arrayOf(Any::class.java) // upperBounds[0] == Any::class.java
+            override fun getLowerBounds(): Array<Type> = emptyArray()
+            override fun toString(): String = "? extends java.lang.Object"
+        }
+
+        val result = mockWildcardType.simpleTypedName()
+        // When upperBounds[0] == Any::class.java, it should go to else branch and return "Any"
+        assertEquals("Any", result)
+    }
+
+    @Test
+    fun `Simple typed name for WildcardType edge cases comprehensive test`() {
+        // Test case 1: Empty upper bounds, empty lower bounds → should return "Any"
+        val emptyBoundsWildcard = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = emptyArray()
+            override fun getLowerBounds(): Array<Type> = emptyArray()
+            override fun toString(): String = "empty-bounds-wildcard"
+        }
+        assertEquals("Any", emptyBoundsWildcard.simpleTypedName())
+
+        // Test case 2: Upper bound is Any::class.java → should return "Any" 
+        val anyUpperBoundWildcard = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = arrayOf(Any::class.java)
+            override fun getLowerBounds(): Array<Type> = emptyArray()
+            override fun toString(): String = "any-upper-bound-wildcard"
+        }
+        assertEquals("Any", anyUpperBoundWildcard.simpleTypedName())
+
+        // Test case 3: Upper bound is not Any::class.java → should return upper bound name
+        val specificUpperBoundWildcard = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = arrayOf(String::class.java)
+            override fun getLowerBounds(): Array<Type> = emptyArray()
+            override fun toString(): String = "string-upper-bound-wildcard"
+        }
+        assertEquals("String", specificUpperBoundWildcard.simpleTypedName())
+
+        // Test case 4: Has lower bounds → should return lower bound name (first when condition)
+        val lowerBoundWildcard = object : WildcardType {
+            override fun getUpperBounds(): Array<Type> = arrayOf(Any::class.java)
+            override fun getLowerBounds(): Array<Type> = arrayOf(Number::class.java)
+            override fun toString(): String = "lower-bound-wildcard"
+        }
+        assertEquals("Number", lowerBoundWildcard.simpleTypedName())
+    }
+
     private data class TestDataClass(
         val name: String = randomString(),
         val value: Int = randomInteger(),
