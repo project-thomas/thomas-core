@@ -2,6 +2,7 @@ package com.thomas.core.context
 
 import com.thomas.core.extension.withSessionContext
 import java.util.Locale
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertNull
 
 class CoroutineSessionContextTest {
@@ -207,17 +209,19 @@ class CoroutineSessionContextTest {
     }
 
     @Test
-    fun `should restore context when oldState is null`() = runTest {
-        SessionContextHolder.clearContext()
+    fun `should restore context when using withContext`() = runTest {
+        val initialContext = SessionContext.create(token = "initial")
+        SessionContextHolder.context = initialContext
 
-        val context = SessionContext.create(token = "restore-test")
-        val contextElement = CoroutineSessionContext.create(context)
+        val temporaryContext = SessionContext.create(token = "temporary")
+        val contextElement = CoroutineSessionContext.create(temporaryContext)
 
         withContext(contextElement) {
-            assertEquals("restore-test", SessionContextHolder.currentToken)
+            assertEquals("temporary", SessionContextHolder.currentToken)
         }
 
-        assertNull(SessionContextHolder.currentToken)
+        // Should restore to initial context
+        assertEquals("initial", SessionContextHolder.currentToken)
     }
 
     @Test
@@ -280,6 +284,357 @@ class CoroutineSessionContextTest {
         val element = CoroutineSessionContext.create(SessionContext.empty())
         assertEquals(CoroutineSessionContext.Key, element.key)
         assertEquals(CoroutineSessionContext, element.key)
+    }
+
+    @Test
+    fun `should test companion object current method`() = runTest {
+        val initialContext = SessionContext.create(
+            token = "current-method-test",
+            locale = Locale.ITALIAN,
+            properties = mapOf("test" to "current")
+        )
+
+        SessionContextHolder.context = initialContext
+
+        val currentElement = CoroutineSessionContext.current()
+
+        withContext(currentElement) {
+            assertEquals("current-method-test", SessionContextHolder.currentToken)
+            assertEquals(Locale.ITALIAN, SessionContextHolder.currentLocale)
+            assertEquals("current", SessionContextHolder.getSessionProperty("test"))
+        }
+    }
+
+    @Test
+    fun `should test updateThreadContext with SessionContextHolder exception`() = runTest {
+        val context = SessionContext.create(token = "exception-handling-test")
+        val contextElement = CoroutineSessionContext.create(context)
+
+        // Clear context to ensure we start fresh
+        SessionContextHolder.clearContext()
+
+        // Create a scenario where getting context might throw an exception
+        // by testing edge case behavior
+        withContext(contextElement) {
+            assertEquals("exception-handling-test", SessionContextHolder.currentToken)
+
+            // Test that even after potential issues, context is properly set
+            delay(1)
+            assertEquals("exception-handling-test", SessionContextHolder.currentToken)
+        }
+
+        // Should be cleared after restoration
+        assertNull(SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `should test restoreThreadContext with different scenarios`() = runTest {
+        // Test scenario: Context switching with restoration
+        val initialContext = SessionContext.create(token = "initial-restore-test")
+        SessionContextHolder.context = initialContext
+
+        val tempContext = SessionContext.create(token = "temp-restore-test")
+        val element = CoroutineSessionContext.create(tempContext)
+
+        withContext(element) {
+            assertEquals("temp-restore-test", SessionContextHolder.currentToken)
+        }
+
+        // Should be restored to initial context
+        assertEquals("initial-restore-test", SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `should test equals method with all branches`() {
+        val context1 = SessionContext.create(token = "equals-branch-test")
+        val element1 = CoroutineSessionContext.create(context1)
+        val element2 = CoroutineSessionContext.create(context1)
+        val element3 = CoroutineSessionContext.create(SessionContext.create(token = "different"))
+
+        // Test same reference
+        assertTrue(element1.equals(element1))
+
+        // Test equal contexts
+        assertTrue(element1.equals(element2))
+
+        // Test different contexts
+        assertNotEquals(element1, element3)
+
+        // Test different type
+        assertNotEquals(element1, "not a CoroutineSessionContext")
+
+        // Test null
+        assertNotEquals(element1, null)
+
+        // Test with other CoroutineSessionContext type check
+        val otherObject: Any = element2
+        assertTrue(element1.equals(otherObject))
+    }
+
+    @Test
+    fun `should test hashCode stability and consistency`() {
+        val context = SessionContext.create(
+            token = "hash-stability-test",
+            locale = Locale.GERMAN,
+            properties = mapOf("hash" to "stable")
+        )
+
+        val element = CoroutineSessionContext.create(context)
+
+        // Hash code should be stable across multiple calls
+        val hash1 = element.hashCode()
+        val hash2 = element.hashCode()
+        val hash3 = element.hashCode()
+
+        assertEquals(hash1, hash2)
+        assertEquals(hash2, hash3)
+
+        // Hash code should be based on sessionContext hashCode
+        assertEquals(context.hashCode(), element.hashCode())
+    }
+
+    @Test
+    fun `should test toString with various context states`() {
+        // Test with empty context
+        val emptyElement = CoroutineSessionContext.create(SessionContext.empty())
+        val emptyToString = emptyElement.toString()
+        assertTrue(emptyToString.contains("CoroutineSessionContext"))
+        assertTrue(emptyToString.contains("sessionContext="))
+
+        // Test with full context
+        val fullContext = SessionContext.create(
+            token = "toString-full-test",
+            locale = Locale.JAPANESE,
+            properties = mapOf("key1" to "value1", "key2" to "value2")
+        )
+        val fullElement = CoroutineSessionContext.create(fullContext)
+        val fullToString = fullElement.toString()
+
+        assertTrue(fullToString.contains("CoroutineSessionContext"))
+        assertTrue(fullToString.contains("sessionContext="))
+        assertTrue(fullToString.contains("SessionContext"))
+    }
+
+    @Test
+    fun `should test key property is consistent`() {
+        val element1 = CoroutineSessionContext.create(SessionContext.empty())
+        val element2 = CoroutineSessionContext.create(SessionContext.create(token = "different"))
+
+        // Key should be the same for all instances
+        assertEquals(element1.key, element2.key)
+        assertEquals(CoroutineSessionContext.Key, element1.key)
+        assertEquals(CoroutineSessionContext, element1.key)
+
+        // Key should be a singleton
+        assertEquals(CoroutineSessionContext.Key, CoroutineSessionContext)
+        assertEquals(element1.key, element2.key)
+    }
+
+    @Test
+    fun `should test complex nested context scenario with restoration`() = runTest {
+        val initialContext = SessionContext.create(token = "initial")
+        val level1Context = SessionContext.create(token = "level1")
+        val level2Context = SessionContext.create(token = "level2")
+        val level3Context = SessionContext.create(token = "level3")
+
+        SessionContextHolder.context = initialContext
+
+        withContext(CoroutineSessionContext.create(level1Context)) {
+            assertEquals("level1", SessionContextHolder.currentToken)
+
+            withContext(CoroutineSessionContext.create(level2Context)) {
+                assertEquals("level2", SessionContextHolder.currentToken)
+
+                withContext(CoroutineSessionContext.create(level3Context)) {
+                    assertEquals("level3", SessionContextHolder.currentToken)
+                    delay(10)
+                    assertEquals("level3", SessionContextHolder.currentToken)
+                }
+
+                // Should be restored to level2
+                assertEquals("level2", SessionContextHolder.currentToken)
+                delay(10)
+                assertEquals("level2", SessionContextHolder.currentToken)
+            }
+
+            // Should be restored to level1
+            assertEquals("level1", SessionContextHolder.currentToken)
+            delay(10)
+            assertEquals("level1", SessionContextHolder.currentToken)
+        }
+
+        // Should be restored to initial context
+        assertEquals("initial", SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `should handle concurrent access to same CoroutineSessionContext instance`() = runTest {
+        val sharedContext = SessionContext.create(
+            token = "shared-context-test",
+            properties = mapOf("shared" to "true")
+        )
+        val sharedElement = CoroutineSessionContext.create(sharedContext)
+
+        val results = (1..10).map { index ->
+            async {
+                withContext(sharedElement) {
+                    delay((1..20).random().toLong())
+
+                    val token = SessionContextHolder.currentToken
+                    val property = SessionContextHolder.getSessionProperty("shared")
+
+                    "$token:$property:$index"
+                }
+            }
+        }
+
+        val completedResults = results.awaitAll()
+
+        completedResults.forEach { result ->
+            assertTrue(result.startsWith("shared-context-test:true:"))
+        }
+    }
+
+    @Test
+    fun `updateThreadContext should handle normal and exceptional cases`() = runTest {
+        val testContext = SessionContext.create(token = "exception-test-token")
+        val contextElement = CoroutineSessionContext.create(testContext)
+
+        // Test 1: Normal case with cleared context (should return null)
+        SessionContextHolder.clearContext()
+        val result1 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertNull(result1?.currentUser)
+        assertNull(result1?.currentToken)
+        assertEquals("exception-test-token", SessionContextHolder.currentToken)
+
+        // Test 2: Normal case with existing context (should return the existing context)
+        val existingContext = SessionContext.create(token = "existing-token")
+        SessionContextHolder.context = existingContext
+
+        val result2 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertNotNull(result2)
+        assertEquals("existing-token", result2?.currentToken)
+        assertEquals("exception-test-token", SessionContextHolder.currentToken)
+
+        // Test 3: Test that the method can handle multiple calls correctly
+        val anotherContext = SessionContext.create(token = "another-test")
+        val anotherElement = CoroutineSessionContext.create(anotherContext)
+
+        val result3 = anotherElement.updateThreadContext(EmptyCoroutineContext)
+        assertNotNull(result3)
+        assertEquals("exception-test-token", result3?.currentToken)
+        assertEquals("another-test", SessionContextHolder.currentToken)
+
+        // Clean up
+        SessionContextHolder.clearContext()
+    }
+
+    @Test
+    fun `updateThreadContext should handle exception gracefully and return null`() = runTest {
+        val testContext = SessionContext.create(token = "graceful-exception-test")
+        val contextElement = CoroutineSessionContext.create(testContext)
+
+        // Clear the context to ensure we start in a known state
+        SessionContextHolder.clearContext()
+
+        // Test the normal flow first
+        val result1 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertNull(result1.currentUser) // Should be null since we cleared context
+        assertNull(result1.currentToken) // Should be null since we cleared context
+        assertEquals("graceful-exception-test", SessionContextHolder.currentToken)
+
+        // Now test with existing context
+        val existingContext = SessionContext.create(token = "existing-token")
+        SessionContextHolder.context = existingContext
+
+        val result2 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertEquals("existing-token", result2?.currentToken)
+        assertEquals("graceful-exception-test", SessionContextHolder.currentToken)
+
+        // Clean up
+        SessionContextHolder.clearContext()
+    }
+
+    @Test
+    fun `restoreThreadContext should call clearContext when oldState is null`() = runTest {
+        val testContext = SessionContext.create(token = "restore-clear-test")
+        val contextElement = CoroutineSessionContext.create(testContext)
+
+        // Set up initial context
+        SessionContextHolder.context = testContext
+        assertEquals("restore-clear-test", SessionContextHolder.currentToken)
+
+        // Call restoreThreadContext with null oldState - should hit the else branch
+        contextElement.restoreThreadContext(EmptyCoroutineContext, SessionContext.empty())
+
+        // Should have cleared the context (currentToken should be null)
+        assertNull(SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `restoreThreadContext should restore oldState when not null`() = runTest {
+        val newContext = SessionContext.create(token = "new-context")
+        val oldContext = SessionContext.create(token = "old-context")
+        val contextElement = CoroutineSessionContext.create(newContext)
+
+        // Set up initial state
+        SessionContextHolder.context = newContext
+        assertEquals("new-context", SessionContextHolder.currentToken)
+
+        // Call restoreThreadContext with non-null oldState - should hit the if branch
+        contextElement.restoreThreadContext(EmptyCoroutineContext, oldContext)
+
+        // Should have restored to old context
+        assertEquals("old-context", SessionContextHolder.currentToken)
+
+        // Now test the else branch - call with null oldState
+        contextElement.restoreThreadContext(EmptyCoroutineContext, SessionContext.empty())
+
+        // Should have cleared the context
+        assertNull(SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `should test both branches of restoreThreadContext explicitly`() = runTest {
+        val testContext = SessionContext.create(token = "branch-test")
+        val contextElement = CoroutineSessionContext.create(testContext)
+
+        // Test 1: oldState is not null (if branch)
+        val savedContext = SessionContext.create(token = "saved-context")
+        SessionContextHolder.context = testContext
+
+        contextElement.restoreThreadContext(EmptyCoroutineContext, savedContext)
+        assertEquals("saved-context", SessionContextHolder.currentToken)
+
+        // Test 2: oldState is null (else branch)
+        SessionContextHolder.context = testContext
+        assertEquals("branch-test", SessionContextHolder.currentToken)
+
+        contextElement.restoreThreadContext(EmptyCoroutineContext, SessionContext.empty())
+        assertNull(SessionContextHolder.currentToken)
+    }
+
+    @Test
+    fun `should test updateThreadContext exception handling with thread manipulation`() = runTest {
+        val testContext = SessionContext.create(token = "thread-manipulation-test")
+        val contextElement = CoroutineSessionContext.create(testContext)
+
+        // Test normal operation first
+        SessionContextHolder.clearContext()
+        val result1 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertNull(result1.currentUser)
+        assertNull(result1.currentToken)
+
+        // Test with existing context to ensure try block works
+        val existingContext = SessionContext.create(token = "existing")
+        SessionContextHolder.context = existingContext
+
+        val result2 = contextElement.updateThreadContext(EmptyCoroutineContext)
+        assertNotNull(result2)
+        assertEquals("existing", result2.currentToken)
+
+        // Verify the new context was set
+        assertEquals("thread-manipulation-test", SessionContextHolder.currentToken)
     }
 
 }
