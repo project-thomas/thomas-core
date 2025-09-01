@@ -5,10 +5,10 @@ import java.util.Locale
 
 object SessionContextHolder {
 
-    private val contextHolder = ThreadLocal<SessionContext?>()
+    private val contextHolder = ThreadLocal.withInitial { SessionContext.empty() }
 
     var context: SessionContext
-        get() = contextHolder.get() ?: SessionContext().also { contextHolder.set(it) }
+        get() = contextHolder.get()
         set(value) {
             contextHolder.set(value)
         }
@@ -16,26 +16,35 @@ object SessionContextHolder {
     var currentUser: SecurityUser
         get() = context.currentUser
         set(value) {
-            context.currentUser = value
+            updateContext { it.withUser(value) }
         }
 
     var currentToken: String?
         get() = context.currentToken
         set(value) {
-            context.currentToken = value
+            updateContext { it.withToken(value) }
         }
 
     var currentLocale: Locale
         get() = context.currentLocale
         set(value) {
-            context.currentLocale = value
+            updateContext { it.withLocale(value) }
         }
+
+    fun updateContext(updater: (SessionContext) -> SessionContext) {
+        contextHolder.set(updater(context))
+    }
 
     fun getSessionProperty(property: String): String? = context.getProperty(property)
 
-    fun setSessionProperty(property: String, value: String?) = context.setProperty(property, value)
+    fun setSessionProperty(property: String, value: String?) {
+        updateContext { it.setProperty(property, value) }
+    }
 
-    fun sessionProperties(): Map<String, String?> = context.sessionProperties()
+    fun sessionProperties(): Map<String, String> = context.sessionProperties()
 
-    fun clearContext() = context.clear()
+    fun clearContext() {
+        contextHolder.set(SessionContext.empty())
+    }
+
 }

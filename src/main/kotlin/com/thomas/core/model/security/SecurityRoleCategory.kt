@@ -3,9 +3,9 @@ package com.thomas.core.model.security
 import com.thomas.core.i18n.BundleResolver
 import com.thomas.core.model.security.SecurityRoleCategory.RoleStringsI18N.coreRolesCategoryDescription
 import com.thomas.core.model.security.SecurityRoleCategory.RoleStringsI18N.coreRolesCategoryName
+import com.thomas.core.model.security.SecurityRoleGroup.ADMINISTRATION
 import com.thomas.core.model.security.SecurityRoleGroup.MANAGEMENT
 import com.thomas.core.model.security.SecurityRoleGroup.MASTER
-import com.thomas.core.model.security.SecurityRoleGroup.ADMINISTRATION
 
 enum class SecurityRoleCategory(
     val subgroupGroup: SecurityRoleGroup,

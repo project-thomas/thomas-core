@@ -3,9 +3,9 @@ package com.thomas.core.extension
 import com.thomas.core.context.SessionContextHolder
 import com.thomas.core.model.entity.BaseEntity
 import com.thomas.core.model.entity.DeferredEntityValidation
-import com.thomas.core.model.entity.DeferredEntityValidationContext.Companion.EMPTY
-import com.thomas.core.model.entity.DeferredEntityValidationContext.Companion.IO
-import com.thomas.core.model.entity.DeferredEntityValidationContext.Companion.VT
+import com.thomas.core.model.entity.EntityValidationScope.Companion.EMPTY
+import com.thomas.core.model.entity.EntityValidationScope.Companion.IO
+import com.thomas.core.model.entity.EntityValidationScope.Companion.VT
 import com.thomas.core.model.entity.EntityValidationException
 import com.thomas.core.util.StringUtils.randomString
 import java.util.UUID
@@ -62,25 +62,25 @@ class BaseEntityExtensionTest {
             field = TestEntity::name,
             message = { ERROR_MESSAGE_01 },
             validate = { it.name.trim().isNotEmpty() },
-            context = EMPTY,
+            scope = EMPTY,
         ),
         DeferredEntityValidation(
             field = TestEntity::name,
             message = { ERROR_MESSAGE_02 },
             validate = { it.name.length <= 10 },
-            context = IO,
+            scope = IO,
         ),
         DeferredEntityValidation(
             field = TestEntity::name,
             message = { ERROR_MESSAGE_03 },
             validate = { it.name.length > 2 },
-            context = IO,
+            scope = IO,
         ),
         DeferredEntityValidation(
             field = TestEntity::email,
             message = { ERROR_MESSAGE_04 },
             validate = { it.email.contains("@") },
-            context = VT,
+            scope = VT,
         ),
         DeferredEntityValidation(
             field = TestEntity::id,

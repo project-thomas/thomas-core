@@ -3,6 +3,11 @@ package com.thomas.core.aspect
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
@@ -17,11 +22,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class AspectSerializerContextTest {
@@ -299,9 +299,9 @@ internal class AspectSerializerContextTest {
         // All results should be from valid serializers (either mock or default)
         val validResults = results.values.all { result ->
             result == "mock1_output" ||
-            result == "mock2_output" ||
-            result == "test_data" ||  // from default AspectToStringSerializer
-            result == "**********"    // masked result
+                result == "mock2_output" ||
+                result == "test_data" ||  // from default AspectToStringSerializer
+                result == "**********"    // masked result
         }
 
         assert(validResults) {

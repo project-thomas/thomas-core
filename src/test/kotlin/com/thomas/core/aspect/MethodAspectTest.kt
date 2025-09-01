@@ -3,7 +3,6 @@ package com.thomas.core.aspect
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
-import com.thomas.core.context.SessionContextHolder
 import com.thomas.core.context.SessionContextHolder.clearContext
 import com.thomas.core.context.SessionContextHolder.currentLocale
 import com.thomas.core.context.SessionContextHolder.currentUser

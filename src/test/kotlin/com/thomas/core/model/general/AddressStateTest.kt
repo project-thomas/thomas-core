@@ -80,7 +80,7 @@ class AddressStateTest {
 
     @Test
     fun `AddressState PT_BR`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("pt-BR")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("pt-BR")
         assertEquals("Acre", AC.label)
         assertEquals("AC", AC.acronym)
         assertEquals("Alagoas", AL.label)
@@ -139,7 +139,7 @@ class AddressStateTest {
 
     @Test
     fun `AddressState EN_US`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("en-US")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("en-US")
         assertEquals("Acre", AC.label)
         assertEquals("AC", AC.acronym)
         assertEquals("Alagoas", AL.label)

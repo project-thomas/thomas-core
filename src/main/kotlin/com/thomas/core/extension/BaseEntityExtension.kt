@@ -4,20 +4,17 @@ import com.thomas.core.model.entity.BaseEntity
 import com.thomas.core.model.entity.DeferredEntityValidation
 import com.thomas.core.model.entity.EntityValidationException
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 
-suspend fun <T : BaseEntity<*>> List<DeferredEntityValidation<T>>.validate(
+suspend fun <T : BaseEntity<T>> List<DeferredEntityValidation<T>>.validate(
     entity: T,
     errorMessage: String,
-) = coroutineScope {
+) = withCurrentSessionContext {
     val errors = ConcurrentHashMap<String, MutableList<String>>()
 
-    this@validate.map { validation ->
-        validation.context.defer(this) {
-            errors.validate(entity, validation)
-        }
-    }.awaitAll()
+    this@validate.map { this.defer(entity, it, errors) }.awaitAll()
 
     errors.takeIf {
         it.isNotEmpty()
@@ -26,13 +23,16 @@ suspend fun <T : BaseEntity<*>> List<DeferredEntityValidation<T>>.validate(
     }
 }
 
-private suspend fun <T : BaseEntity<*>> ConcurrentHashMap<String, MutableList<String>>.validate(
+private fun <T : BaseEntity<T>> CoroutineScope.defer(
     entity: T,
     validation: DeferredEntityValidation<T>,
-) = coroutineScope {
+    errors: ConcurrentHashMap<String, MutableList<String>>
+): Deferred<*> = validation.scope(this) {
     validation.takeIf {
         !it.validate(entity)
-    }?.run {
-        this@validate.getOrPut(this.field.name.toSnakeCase()) { mutableListOf() }.add(this.message(entity))
+    }?.let {
+        errors.getOrPut(validation.field.name.toSnakeCase()) {
+            mutableListOf()
+        }.add(validation.message(entity))
     }
 }

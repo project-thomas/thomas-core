@@ -3,10 +3,10 @@ package com.thomas.core.model.security
 import com.thomas.core.i18n.BundleResolver
 import com.thomas.core.model.security.SecurityRole.RoleStringsI18N.coreRolesDescription
 import com.thomas.core.model.security.SecurityRole.RoleStringsI18N.coreRolesName
+import com.thomas.core.model.security.SecurityRoleCategory.ADMINISTRATION_CATEGORY
 import com.thomas.core.model.security.SecurityRoleCategory.MANAGEMENT_GROUP
 import com.thomas.core.model.security.SecurityRoleCategory.MANAGEMENT_USER
 import com.thomas.core.model.security.SecurityRoleCategory.MASTER_CATEGORY
-import com.thomas.core.model.security.SecurityRoleCategory.ADMINISTRATION_CATEGORY
 
 enum class SecurityRole(
     val roleCode: Int,

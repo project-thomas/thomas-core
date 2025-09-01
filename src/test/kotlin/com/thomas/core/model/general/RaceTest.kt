@@ -21,7 +21,7 @@ class RaceTest {
 
     @Test
     fun `Race PT_BR`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("pt-BR")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("pt-BR")
         assertEquals("Branca", WHITE.typeName)
         assertEquals(
             "Pessoas que se identificam com as características físicas e culturais associadas às populações europeias.",
@@ -48,7 +48,7 @@ class RaceTest {
 
     @Test
     fun `Race EN_US`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("en-US")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("en-US")
         assertEquals("White", WHITE.typeName)
         assertEquals(
             "People who identify with the physical and cultural characteristics associated with European populations.",

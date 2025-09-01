@@ -1,5 +1,6 @@
 package com.thomas.core.extension
 
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -17,7 +18,6 @@ import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration as KDuration
-import java.time.Duration
 
 internal class DateTimeExtensionTest {
 
