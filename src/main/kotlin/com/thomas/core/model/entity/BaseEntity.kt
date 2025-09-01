@@ -1,7 +1,6 @@
 package com.thomas.core.model.entity
 
 import com.thomas.core.extension.addError
-import com.thomas.core.extension.throws
 import com.thomas.core.extension.throwsOnError
 import com.thomas.core.extension.toSnakeCase
 import com.thomas.core.i18n.CoreMessageI18N.validationEntityValidationInvalidErrorMessage

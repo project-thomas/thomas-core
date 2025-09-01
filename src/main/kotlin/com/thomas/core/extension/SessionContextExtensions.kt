@@ -2,7 +2,6 @@ package com.thomas.core.extension
 
 import com.thomas.core.context.CoroutineSessionContext
 import com.thomas.core.context.SessionContext
-import com.thomas.core.context.SessionContextHolder
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext

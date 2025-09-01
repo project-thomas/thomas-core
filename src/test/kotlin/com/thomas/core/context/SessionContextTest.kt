@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 
 class SessionContextTest {
 
@@ -44,10 +43,10 @@ class SessionContextTest {
     fun `should create empty context by default`() {
         val context = SessionContext.empty()
 
-        assertThrows<UnauthenticatedUserException> { context.currentUser }
+        assertNull(context.currentUser)
         assertNull(context.currentToken)
         assertEquals(Locale.ROOT, context.currentLocale)
-        assertEquals(emptyMap<String, String?>(), context.sessionProperties())
+        assertEquals(emptyMap<String, String>(), context.sessionProperties)
     }
 
     @Test
@@ -66,7 +65,7 @@ class SessionContextTest {
         assertEquals(mockUser, context.currentUser)
         assertEquals(token, context.currentToken)
         assertEquals(locale, context.currentLocale)
-        assertEquals(properties, context.sessionProperties())
+        assertEquals(properties, context.sessionProperties)
     }
 
     @Test
@@ -248,6 +247,82 @@ class SessionContextTest {
     }
 
     @Test
+    fun `should validate atomic operations in high concurrency`() {
+        val threadCount = 50
+        val iterationsPerThread = 20
+        val successfulOperations = AtomicInteger(0)
+        val threads = mutableListOf<Thread>()
+        val barrier = CyclicBarrier(threadCount)
+        val errors = mutableListOf<String>()
+
+        repeat(threadCount) { threadIndex ->
+            val thread = Thread {
+                try {
+                    barrier.await()
+                    repeat(iterationsPerThread) { iteration ->
+                        val expectedToken = "t${threadIndex}i$iteration"
+                        val expectedProperties = mapOf(
+                            "thread" to threadIndex.toString(),
+                            "iteration" to iteration.toString()
+                        )
+
+                        val context = SessionContext.create(
+                            token = expectedToken,
+                            properties = expectedProperties
+                        )
+
+                        SessionContextHolder.context = context
+
+                        val actualToken = SessionContextHolder.currentToken ?: "null-token"
+                        val actualThreadProp = SessionContextHolder.getSessionProperty("thread") ?: "null-thread"
+                        val actualIterProp = SessionContextHolder.getSessionProperty("iteration") ?: "null-iter"
+
+                        // Validate consistency within the same thread
+                        if (actualToken == expectedToken &&
+                            actualThreadProp == threadIndex.toString() &&
+                            actualIterProp == iteration.toString()
+                        ) {
+                            successfulOperations.incrementAndGet()
+                        } else {
+                            synchronized(errors) {
+                                errors.add("Thread $threadIndex, Iteration $iteration: Expected token=$expectedToken, thread=$threadIndex, iteration=$iteration | Got token=$actualToken, thread=$actualThreadProp, iteration=$actualIterProp")
+                            }
+                        }
+
+                        Thread.sleep(1) // Small delay to increase chances of race conditions
+                    }
+                } catch (e: Exception) {
+                    synchronized(errors) {
+                        errors.add("Exception in thread $threadIndex: ${e.message}")
+                    }
+                    e.printStackTrace()
+                }
+            }
+            threads.add(thread)
+            thread.start()
+        }
+
+        threads.forEach { it.join() }
+
+        val expectedOperations = threadCount * iterationsPerThread
+        val actualSuccessful = successfulOperations.get()
+
+        if (errors.isNotEmpty()) {
+            println("Errors found:")
+            errors.take(10).forEach { println("  $it") }
+            if (errors.size > 10) {
+                println("  ... and ${errors.size - 10} more errors")
+            }
+        }
+
+        assertTrue(actualSuccessful > 0, "At least some operations should succeed")
+        assertTrue(
+            actualSuccessful >= (expectedOperations * 0.95).toInt(),
+            "At least 95% of operations should succeed. Expected: $expectedOperations, Successful: $actualSuccessful, Errors: ${errors.size}"
+        )
+    }
+
+    @Test
     fun `should test both branches of setProperty method`() {
         val context = SessionContext.create(
             properties = mapOf("existing" to "value")
@@ -356,29 +431,28 @@ class SessionContextTest {
         assertNotSame(originalContext, defaultCopy)
 
         val newProperties = mapOf("new" to "property")
-        val copyWithNewProps = originalContext.copy(properties = newProperties)
-        assertEquals(newProperties, copyWithNewProps.sessionProperties())
+        val copyWithNewProps = originalContext.withProperties(newProperties)
+        assertEquals(newProperties, copyWithNewProps.sessionProperties)
 
         val newUser = mockk<SecurityUser> {
             every { userId } returns UUID.randomUUID()
             every { fullName } returns "New User"
         }
-        val copyWithNewUser = originalContext.copy(user = newUser)
+        val copyWithNewUser = originalContext.withUser(newUser)
         assertEquals(newUser, copyWithNewUser.currentUser)
 
-        val copyWithNewToken = originalContext.copy(token = "new-token")
+        val copyWithNewToken = originalContext.withToken("new-token")
         assertEquals("new-token", copyWithNewToken.currentToken)
 
-        val copyWithNewLocale = originalContext.copy(locale = Locale.JAPANESE)
+        val copyWithNewLocale = originalContext.withLocale(Locale.JAPANESE)
         assertEquals(Locale.JAPANESE, copyWithNewLocale.currentLocale)
 
-        val copyWithAllNew = originalContext.copy(
-            properties = mapOf("all" to "new"),
-            user = newUser,
-            token = "all-new-token",
-            locale = Locale.ITALIAN
-        )
-        assertEquals(mapOf("all" to "new"), copyWithAllNew.sessionProperties())
+        val copyWithAllNew = originalContext
+            .withProperties(mapOf("all" to "new"))
+            .withUser(newUser)
+            .withToken("all-new-token")
+            .withLocale(Locale.ITALIAN)
+        assertEquals(mapOf("all" to "new"), copyWithAllNew.sessionProperties)
         assertEquals(newUser, copyWithAllNew.currentUser)
         assertEquals("all-new-token", copyWithAllNew.currentToken)
         assertEquals(Locale.ITALIAN, copyWithAllNew.currentLocale)
@@ -396,9 +470,9 @@ class SessionContextTest {
         val toString = context.toString()
 
         assertTrue(toString.contains("SessionContext"))
-        assertTrue(toString.contains("_currentLocale"))
-        assertTrue(toString.contains("_currentToken"))
-        assertTrue(toString.contains("_currentUser"))
+        assertTrue(toString.contains("currentLocale"))
+        assertTrue(toString.contains("currentToken"))
+        assertTrue(toString.contains("currentUser"))
         assertTrue(toString.contains("sessionProperties"))
     }
 
@@ -434,8 +508,8 @@ class SessionContextTest {
         val newProperties = mapOf("new" to "properties")
         val withPropsContext = originalContext.withProperties(newProperties)
         assertNotSame(originalContext, withPropsContext)
-        assertEquals(mapOf("original" to "value"), originalContext.sessionProperties())
-        assertEquals(newProperties, withPropsContext.sessionProperties())
+        assertEquals(mapOf("original" to "value"), originalContext.sessionProperties)
+        assertEquals(newProperties, withPropsContext.sessionProperties)
     }
 
 }

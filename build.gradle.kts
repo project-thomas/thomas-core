@@ -40,6 +40,8 @@ tasks.withType<KotlinCompile> {
             compilerArgs = listOf(
                 "-showWeaveInfo",
                 "-verbose",
+                "-XnoInline",
+                "-Xlint:adviceDidNotMatch=ignore"
             )
         }
     }
@@ -51,6 +53,7 @@ tasks.withType<KotlinCompile> {
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-java-parameters",
+            "-Xconcurrent-gc"
         )
     }
 }

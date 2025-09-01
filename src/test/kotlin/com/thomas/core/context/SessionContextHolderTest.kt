@@ -41,10 +41,10 @@ class SessionContextHolderTest {
         fun `should initialize with empty context by default`() {
             val context = SessionContextHolder.context
 
-            assertThrows<UnauthenticatedUserException> { context.currentUser }
+            assertNull(context.currentUser)
             assertNull(context.currentToken)
             assertEquals(Locale.ROOT, context.currentLocale)
-            assertEquals(emptyMap<String, String>(), context.sessionProperties())
+            assertEquals(emptyMap<String, String>(), context.sessionProperties)
         }
 
         @Test
@@ -412,6 +412,47 @@ class SessionContextHolderTest {
 
             latch.await()
             assertEquals(0, errors.get())
+        }
+    }
+
+    @Nested
+    @DisplayName("Context Scoping")
+    inner class ContextScopingTests {
+
+        @Test
+        fun `should provide scoped context with automatic cleanup`() {
+            val originalContext = SessionContext.create(token = "original")
+            val scopedContext = SessionContext.create(token = "scoped")
+
+            SessionContextHolder.context = originalContext
+            assertEquals("original", SessionContextHolder.currentToken)
+
+            SessionContextHolder.withContext(scopedContext).use {
+                assertEquals("scoped", SessionContextHolder.currentToken)
+            }
+
+            assertEquals("original", SessionContextHolder.currentToken)
+        }
+
+        @Test
+        fun `should handle nested scoped contexts`() {
+            val context1 = SessionContext.create(token = "context1")
+            val context2 = SessionContext.create(token = "context2")
+            val context3 = SessionContext.create(token = "context3")
+
+            SessionContextHolder.context = context1
+
+            SessionContextHolder.withContext(context2).use {
+                assertEquals("context2", SessionContextHolder.currentToken)
+
+                SessionContextHolder.withContext(context3).use {
+                    assertEquals("context3", SessionContextHolder.currentToken)
+                }
+
+                assertEquals("context2", SessionContextHolder.currentToken)
+            }
+
+            assertEquals("context1", SessionContextHolder.currentToken)
         }
     }
 

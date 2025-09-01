@@ -14,37 +14,49 @@ object SessionContextHolder {
         }
 
     var currentUser: SecurityUser
-        get() = context.currentUser
+        get() = context.currentUser ?: throw UnauthenticatedUserException()
         set(value) {
-            updateContext { it.withUser(value) }
+            updateContextAtomically { it.withUser(value) }
         }
 
     var currentToken: String?
         get() = context.currentToken
         set(value) {
-            updateContext { it.withToken(value) }
+            updateContextAtomically { it.withToken(value) }
         }
 
     var currentLocale: Locale
         get() = context.currentLocale
         set(value) {
-            updateContext { it.withLocale(value) }
+            updateContextAtomically { it.withLocale(value) }
         }
 
     fun updateContext(updater: (SessionContext) -> SessionContext) {
-        contextHolder.set(updater(context))
+        updateContextAtomically(updater)
+    }
+
+    private fun updateContextAtomically(updater: (SessionContext) -> SessionContext) {
+        val currentContext = contextHolder.get()
+        val newContext = updater(currentContext)
+        contextHolder.set(newContext)
     }
 
     fun getSessionProperty(property: String): String? = context.getProperty(property)
 
     fun setSessionProperty(property: String, value: String?) {
-        updateContext { it.setProperty(property, value) }
+        updateContextAtomically { it.setProperty(property, value) }
     }
 
-    fun sessionProperties(): Map<String, String> = context.sessionProperties()
+    fun sessionProperties(): Map<String, String> = context.sessionProperties
 
     fun clearContext() {
         contextHolder.set(SessionContext.empty())
+    }
+
+    fun withContext(sessionContext: SessionContext): AutoCloseable {
+        val previousContext = context
+        context = sessionContext
+        return AutoCloseable { context = previousContext }
     }
 
 }
