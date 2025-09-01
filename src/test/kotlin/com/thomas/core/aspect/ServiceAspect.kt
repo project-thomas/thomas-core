@@ -167,6 +167,32 @@ internal class MethodAspectService {
         isActive: Boolean?,
     ): Integer? = null
 
+    @MethodLog(
+        logParameters = true,
+        logResult = true,
+        logMetadata = true,
+        logDuration = true,
+        maskResult = false,
+    )
+    fun logResultWithException(
+        username: String,
+        userData: String?,
+        isActive: Boolean?,
+    ): String = throw RuntimeException("Exception with logResult enabled")
+
+    @MethodLog(
+        logParameters = true,
+        logResult = false,
+        logMetadata = true,
+        logDuration = true,
+        maskResult = false,
+    )
+    fun logResultFalseWithException(
+        username: String,
+        userData: String?,
+        isActive: Boolean?,
+    ): String = throw RuntimeException("Exception with logResult enabled")
+
 }
 
 internal data class AspectData(val value: Int, val description: String?, val totalValue: BigDecimal)

@@ -10,6 +10,7 @@ import com.thomas.core.context.SessionContextHolder.currentLocale
 import com.thomas.core.context.SessionContextHolder.currentUser
 import com.thomas.core.context.SessionContextHolder.sessionProperties
 import com.thomas.core.context.SessionContextHolder.setSessionProperty
+import com.thomas.core.extension.simpleTypedName
 import com.thomas.core.extension.toSecondsPattern
 import com.thomas.core.generator.UserGenerator.generateSecurityUser
 import com.thomas.core.util.BooleanUtils.randomBoolean
@@ -22,15 +23,20 @@ import com.thomas.core.util.StringUtils.randomString
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import java.lang.System.lineSeparator
+import java.lang.reflect.Method
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.Locale
 import kotlin.time.Duration
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Aspect
+import org.aspectj.lang.reflect.MethodSignature
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -622,6 +628,84 @@ class MethodAspectTest {
             "${lineSeparator()}\t\tparameter[1] -> userData: String = null" +
             "${lineSeparator()}\t\tparameter[2] -> isActive: Boolean = null" +
             "${lineSeparator()}\t\t      return -> type: void = IllegalArgumentException(Exception occurred on unit call)" +
+            "${lineSeparator()}\tDuration (second.nano) -> $totalDuration"
+
+        val message = logCapture.methodLogMessage()
+
+        assertEquals(expected, message)
+    }
+
+    @Test
+    fun `Log method should cover branch where logResult is true AND result is Throwable`() {
+        currentUser = generateSecurityUser()
+        val prop01 = randomString(spaces = false)
+        val value01 = randomString(spaces = false)
+        setSessionProperty(prop01, value01)
+
+        val usernameParam = randomString(spaces = false)
+        val dataParam = listOf(randomString(spaces = false), null).random()
+        val boolParam = listOf(randomBoolean(), null).random()
+        val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
+
+        every { any<Duration>().toSecondsPattern() } returns totalDuration
+
+        assertThrows<RuntimeException> {
+            MethodAspectService().logResultWithException(
+                username = usernameParam,
+                userData = dataParam,
+                isActive = boolParam,
+            )
+        }
+
+        val expected = "${lineSeparator()}Method Logging" +
+            "${lineSeparator()}\tMetadata -> " +
+            "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
+            "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
+            "${lineSeparator()}\t\t$prop01 -> $value01" +
+            "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.logResultWithException" +
+            "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
+            "${lineSeparator()}\t\tparameter[1] -> userData: String = $dataParam" +
+            "${lineSeparator()}\t\tparameter[2] -> isActive: Boolean = $boolParam" +
+            "${lineSeparator()}\t\t      return -> type: String = RuntimeException(Exception with logResult enabled)" +
+            "${lineSeparator()}\tDuration (second.nano) -> $totalDuration"
+
+        val message = logCapture.methodLogMessage()
+
+        assertEquals(expected, message)
+    }
+
+    @Test
+    fun `Log method should cover branch where logResult is false AND result is Throwable`() {
+        currentUser = generateSecurityUser()
+        val prop01 = randomString(spaces = false)
+        val value01 = randomString(spaces = false)
+        setSessionProperty(prop01, value01)
+
+        val usernameParam = randomString(spaces = false)
+        val dataParam = listOf(randomString(spaces = false), null).random()
+        val boolParam = listOf(randomBoolean(), null).random()
+        val totalDuration = "${randomInteger(0, 99)}.${randomLong(0, 999999999)}"
+
+        every { any<Duration>().toSecondsPattern() } returns totalDuration
+
+        assertThrows<RuntimeException> {
+            MethodAspectService().logResultFalseWithException(
+                username = usernameParam,
+                userData = dataParam,
+                isActive = boolParam,
+            )
+        }
+
+        val expected = "${lineSeparator()}Method Logging" +
+            "${lineSeparator()}\tMetadata -> " +
+            "${lineSeparator()}\t\tUserId -> ${currentUser.userId}" +
+            "${lineSeparator()}\t\tLocale -> ${currentLocale.toLanguageTag()}" +
+            "${lineSeparator()}\t\t$prop01 -> $value01" +
+            "${lineSeparator()}\tCall -> com.thomas.core.aspect.MethodAspectService.logResultFalseWithException" +
+            "${lineSeparator()}\t\tparameter[0] -> username: String = $usernameParam" +
+            "${lineSeparator()}\t\tparameter[1] -> userData: String = $dataParam" +
+            "${lineSeparator()}\t\tparameter[2] -> isActive: Boolean = $boolParam" +
+            "${lineSeparator()}\t\t      return -> type: String = RuntimeException(Exception with logResult enabled)" +
             "${lineSeparator()}\tDuration (second.nano) -> $totalDuration"
 
         val message = logCapture.methodLogMessage()

@@ -15,6 +15,7 @@ import kotlin.time.TimedValue
 import kotlin.time.measureTimedValue
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.ProceedingJoinPoint
+
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.reflect.MethodSignature
@@ -43,11 +44,12 @@ class MethodAspect {
         return measured.returnValue()
     }
 
-    private fun TimedValue<Any?>.returnValue(): Any? = this.value?.takeIf {
-        it is Throwable
-    }?.let {
-        throw it as Throwable
-    } ?: this.value
+    private fun TimedValue<Any?>.returnValue(): Any? {
+        if (this.value is Throwable) {
+            throw this.value as Throwable
+        }
+        return this.value
+    }
 
     private fun JoinPoint.logger(): KLogger = KotlinLogging.logger(this.sourceLocation.withinType.name)
 
@@ -102,19 +104,21 @@ class MethodAspect {
     private fun JoinPoint.resultLog(
         annotation: MethodLog,
         result: Any?,
-    ): String = EMPTY_STRING_VALUE.takeIf {
-        !annotation.logResult && result !is Throwable
-    } ?: result.let {
+    ): String = if (annotation.logResult || result is Throwable) {
         val signature = this.methodSignature()
         val prefix = "$TWO_TAB_LINE      return -> type: ${signature.method.genericReturnType.simpleTypedName()} = "
-        "$prefix${aspectSerializer.serialize(it, annotation.maskResult)}"
+        "$prefix${aspectSerializer.serialize(result, annotation.maskResult)}"
+    } else {
+        EMPTY_STRING_VALUE
     }
 
     private fun MethodLog.durationLog(
         duration: TimedValue<Any?>
-    ): String = EMPTY_STRING_VALUE.takeIf {
-        !this.logDuration
-    } ?: "${ONE_TAB_LINE}Duration (second.nano) -> ${duration.duration.toSecondsPattern()}"
+    ): String = if (logDuration) {
+        "${ONE_TAB_LINE}Duration (second.nano) -> ${duration.duration.toSecondsPattern()}"
+    } else {
+        EMPTY_STRING_VALUE
+    }
 
     private fun userId() = try {
         currentUser.userId.toString()
