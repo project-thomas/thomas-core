@@ -6,7 +6,7 @@ import com.thomas.core.extension.asyncSessionContextVT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 
-fun interface EntityValidationScope: (CoroutineScope, suspend CoroutineScope.() -> Unit) -> Deferred<Unit> {
+fun interface EntityValidationScope: (CoroutineScope, suspend CoroutineScope.() -> Pair<String, String>?) -> Deferred<Pair<String, String>?> {
 
     companion object {
 

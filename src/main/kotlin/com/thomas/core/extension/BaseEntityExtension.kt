@@ -4,35 +4,40 @@ import com.thomas.core.model.entity.BaseEntity
 import com.thomas.core.model.entity.DeferredEntityValidation
 import com.thomas.core.model.entity.EntityValidationException
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
 
 suspend fun <T : BaseEntity<T>> List<DeferredEntityValidation<T>>.validate(
     entity: T,
     errorMessage: String,
 ) = withCurrentSessionContext {
-    val errors = ConcurrentHashMap<String, MutableList<String>>()
+    if (isEmpty()) return@withCurrentSessionContext
 
-    this@validate.map { this.defer(entity, it, errors) }.awaitAll()
+    val errorMap = ConcurrentHashMap<String, MutableList<String>>(size)
 
-    errors.takeIf {
-        it.isNotEmpty()
-    }?.throws {
-        EntityValidationException(errorMessage, it)
+    map { validation ->
+        validation.scope(this) { validation.result(entity) }
+    }.awaitAll().filterNotNull().forEach { (field, message) ->
+        errorMap.addError(field, message)
     }
+
+    errorMap.throwsOnError(errorMessage)
 }
 
-private fun <T : BaseEntity<T>> CoroutineScope.defer(
+private suspend fun <T : BaseEntity<T>> DeferredEntityValidation<T>.result(
     entity: T,
-    validation: DeferredEntityValidation<T>,
-    errors: ConcurrentHashMap<String, MutableList<String>>
-): Deferred<*> = validation.scope(this) {
-    validation.takeIf {
-        !it.validate(entity)
-    }?.let {
-        errors.getOrPut(validation.field.name.toSnakeCase()) {
-            mutableListOf()
-        }.add(validation.message(entity))
-    }
+): Pair<String, String>? = takeIf {
+    !validate(entity)
+}?.let { validation ->
+    validation.field.name.toSnakeCase() to validation.message(entity)
+}
+
+fun ConcurrentHashMap<String, MutableList<String>>.addError(
+    field: String,
+    message: String,
+) = computeIfAbsent(field) { mutableListOf() }.add(message)
+
+fun ConcurrentHashMap<String, MutableList<String>>.throwsOnError(
+    message: String
+) = takeIf { it.isNotEmpty() }?.throws {
+    EntityValidationException(message, this)
 }
