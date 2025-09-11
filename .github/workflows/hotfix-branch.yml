@@ -139,15 +139,24 @@ jobs:
           core.setOutput('pr-number', prNumber);
 
     - name: Clean and Build
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       run: ./gradlew clean build --no-daemon --build-cache
 
     - name: Execute Kover Tasks
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       run: |
         ./gradlew koverVerify --no-daemon
         ./gradlew koverXmlReport --no-daemon
         ./gradlew koverHtmlReport --no-daemon
 
     - name: Upload coverage reports
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       uses: actions/upload-artifact@v4
       with:
         name: coverage-reports-hotfix-${{ steps.hotfix.outputs.name }}
@@ -164,6 +173,9 @@ jobs:
 #      run: ./gradlew sonar --no-daemon
 
     - name: Increment Patch Version
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       if: steps.create-pr.outputs.pr-created == 'true'
       id: version
       run: |

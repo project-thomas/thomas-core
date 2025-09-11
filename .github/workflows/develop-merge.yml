@@ -126,9 +126,15 @@ jobs:
           core.setOutput('pr-number', prNumber);
 
     - name: Clean and Build
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       run: ./gradlew clean build --no-daemon --build-cache
 
     - name: Execute Kover Tasks
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       run: |
         ./gradlew koverVerify --no-daemon
         ./gradlew koverXmlReport --no-daemon
