@@ -1,0 +1,229 @@
+name: Hotfix Branch CI
+
+on:
+  push:
+    branches:
+      - 'hotfix/*'
+
+env:
+  JAVA_VERSION: '21'
+  PROJECT_ENVIRONMENT: 'DEVELOPMENT'
+
+jobs:
+  hotfix-ci:
+    name: Hotfix Branch Pipeline
+    runs-on:
+      group: Default
+
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+
+    outputs:
+      pr-created: ${{ steps.create-pr.outputs.pr-created }}
+      pr-number: ${{ steps.create-pr.outputs.pr-number }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Extract hotfix name
+      id: hotfix
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        HOTFIX_NAME=${BRANCH_NAME#hotfix/}
+        echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "name=$HOTFIX_NAME" >> $GITHUB_OUTPUT
+
+    - name: Setup Java ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-read-only: false
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Create/Update Pull Request to master
+      id: create-pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const head = '${{ steps.hotfix.outputs.branch }}';
+          const base = 'master';
+          const title = `🔥 Hotfix: ${{ steps.hotfix.outputs.name }}`;
+          const body = `## Hotfix Implementation: ${{ steps.hotfix.outputs.name }}
+
+          ### 🚨 Hotfix Description
+          **Issue:** ${{ steps.hotfix.outputs.name }}
+          **Target:** Production (master branch)
+          **Priority:** Critical
+
+          ### 🔧 Changes
+          This PR contains critical fixes that need to be deployed to production immediately.
+
+          ### ✅ Pre-merge Checklist
+          - [x] Hotfix branch created from master
+          - [x] CI pipeline triggered
+          - [ ] Code review completed (expedited)
+          - [ ] Ready for emergency deployment
+
+          ### ⚡ Post-merge Actions
+          - Production deployment will be triggered immediately
+          - Version will be automatically incremented (patch)
+          - Changes will be synced back to develop
+
+          ---
+          🔥 **URGENT:** This is a hotfix PR requiring expedited review and deployment.`;
+
+          // Check if PR already exists
+          const { data: existingPRs } = await github.rest.pulls.list({
+            owner,
+            repo,
+            head: `${owner}:${head}`,
+            base,
+            state: 'open'
+          });
+
+          let prCreated = false;
+          let prNumber;
+
+          if (existingPRs.length === 0) {
+            // Create new PR with high priority labels
+            const { data: pr } = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head,
+              base,
+              body
+            });
+
+            // Add labels to indicate urgency
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: pr.number,
+              labels: ['hotfix', 'urgent', 'production']
+            });
+
+            prCreated = true;
+            prNumber = pr.number;
+            console.log(`🔥 Created new hotfix PR #${pr.number}`);
+          } else {
+            // Update existing PR
+            const existingPR = existingPRs[0];
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: existingPR.number,
+              title,
+              body: body + `\n\n**Last Updated:** ${new Date().toISOString()}`
+            });
+            prCreated = false;
+            prNumber = existingPR.number;
+            console.log(`🔥 Updated existing hotfix PR #${existingPR.number}`);
+          }
+
+          core.setOutput('pr-created', prCreated);
+          core.setOutput('pr-number', prNumber);
+
+    - name: Clean and Build
+      run: ./gradlew clean build --no-daemon --build-cache
+
+    - name: Execute Kover Tasks
+      run: |
+        ./gradlew koverVerify --no-daemon
+        ./gradlew koverXmlReport --no-daemon
+        ./gradlew koverHtmlReport --no-daemon
+
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports-hotfix-${{ steps.hotfix.outputs.name }}
+        path: |
+          build/reports/kover/
+        retention-days: 7
+
+#    - name: SonarQube Analysis
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        CORE_SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
+#        SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
+#      run: ./gradlew sonar --no-daemon
+
+    - name: Increment Patch Version
+      if: steps.create-pr.outputs.pr-created == 'true'
+      id: version
+      run: |
+        OLD_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
+        ./gradlew incrementPatchVersion --no-daemon
+        NEW_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
+        echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+        echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Commit Version Update
+      if: steps.create-pr.outputs.pr-created == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add version.properties
+        git commit -m "chore: increment patch version from ${{ steps.version.outputs.old-version }} to ${{ steps.version.outputs.new-version }} for hotfix"
+        git push origin ${{ steps.hotfix.outputs.branch }}
+
+    - name: Update PR with version info
+      if: steps.create-pr.outputs.pr-created == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const prNumber = '${{ steps.create-pr.outputs.pr-number }}';
+          const oldVersion = '${{ steps.version.outputs.old-version }}';
+          const newVersion = '${{ steps.version.outputs.new-version }}';
+
+          await github.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: prNumber,
+            body: `## 🔄 Hotfix Version Updated
+
+            **Previous Version:** \`${oldVersion}\`
+            **New Hotfix Version:** \`${newVersion}\`
+
+            The patch version has been automatically incremented for this hotfix.
+
+            ### 📋 Next Steps
+            1. Complete code review (expedited process)
+            2. Merge to master for immediate deployment
+            3. Monitor production deployment
+            4. Verify hotfix resolves the issue`
+          });
+
+    - name: Publish to Repository
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+        PROJECT_ENVIRONMENT: ${{ env.PROJECT_ENVIRONMENT }}
+      run: |
+        echo "📦 Publishing to snapshot repository..."
+        ./gradlew publish --no-daemon
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-develop
+        path: |
+          build/libs/
+          build/publications/
+        retention-days: 7

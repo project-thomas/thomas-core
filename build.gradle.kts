@@ -16,9 +16,9 @@ plugins {
     alias(libs.plugins.kotlinx.kover)
     alias(libs.plugins.sonarqube.scanner)
     alias(libs.plugins.project.plugin)
+    alias(libs.plugins.aspectj.weaving)
     `maven-publish`
     java
-    id("io.freefair.aspectj.post-compile-weaving") version "8.14.2"
 }
 
 group = "com.thomas"
@@ -71,7 +71,6 @@ tasks.named("compileTestKotlin", KotlinCompile::class) {
         }
     }
 }
-
 
 dependencies {
     implementation(libs.bundles.kotlin.stdlib.all)
@@ -157,9 +156,11 @@ sonar {
         property("sonar.tests", file("$projectDir/src/test/kotlin/"))
         property("sonar.projectName", "T.H.O.M.A.S. Core")
         property("sonar.projectKey", "thomas-core")
-        property("sonar.login", System.getenv("THOMAS_CORE_SONAR_LOGIN"))
-        property("sonar.host.url", System.getenv("THOMAS_SONAR_URL"))
+        property("sonar.login", System.getenv("CORE_SONAR_LOGIN"))
+        property("sonar.host.url", System.getenv("SONAR_URL"))
         property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/report.xml")
+        property("sonar.kotlin.file.suffixes", ".kt")
+        property("sonar.java.file.suffixes", ".java")
         property("sonar.verbose", true)
         property("sonar.qualitygate.wait", true)
         property(
