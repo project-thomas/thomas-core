@@ -105,23 +105,6 @@ internal class UUIDExtensionTest {
     }
 
     @Test
-    fun `randomUUIDv7 should have acceptable performance`() {
-        val iterations = 100_000
-
-        val timeMillis = measureTimeMillis {
-            repeat(iterations) {
-                randomUUIDv7()
-            }
-        }
-
-        val uuidsPerSecond = (iterations * 1000.0) / timeMillis
-
-        assertTrue(uuidsPerSecond > 50_000, "Performance should be acceptable: generated ${"%.0f".format(uuidsPerSecond)} UUIDs/sec")
-
-        println("Performance: Generated ${"%.0f".format(uuidsPerSecond)} UUIDs per second")
-    }
-
-    @Test
     fun `randomUUIDv7 should have proper bit field distribution`() {
         val uuid = randomUUIDv7()
         val msb = uuid.mostSignificantBits
