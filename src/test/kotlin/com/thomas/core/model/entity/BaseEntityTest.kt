@@ -88,8 +88,8 @@ internal class BaseEntityTest {
 
         override fun validations(): List<EntityValidation<TestEntity>> =
             listOf(
-                EntityValidation(TestEntity::name.name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
-                EntityValidation(TestEntity::email.name, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
+                EntityValidation(TestEntity::name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
+                EntityValidation(TestEntity::email, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
             )
     }
 
@@ -105,8 +105,8 @@ internal class BaseEntityTest {
 
         override fun validations(): List<EntityValidation<NoMessageEntity>> =
             listOf(
-                EntityValidation(NoMessageEntity::name.name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
-                EntityValidation(NoMessageEntity::email.name, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
+                EntityValidation(NoMessageEntity::name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
+                EntityValidation(NoMessageEntity::email, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
             )
     }
 
@@ -136,8 +136,8 @@ internal class BaseEntityTest {
 
         override fun validations(): List<EntityValidation<UpdatableEntity>> =
             listOf(
-                EntityValidation(UpdatableEntity::name.name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
-                EntityValidation(UpdatableEntity::email.name, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
+                EntityValidation(UpdatableEntity::name, { "Name is invalid" }, { it.name.trim().isNotEmpty() }),
+                EntityValidation(UpdatableEntity::email, { "Email is invalid" }, { it.email.trim().isNotEmpty() }),
             )
     }
 

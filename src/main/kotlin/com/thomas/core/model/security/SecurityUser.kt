@@ -1,6 +1,5 @@
 package com.thomas.core.model.security
 
-import com.thomas.core.extension.merge
 import com.thomas.core.model.general.Gender
 import com.thomas.core.model.general.Race
 import com.thomas.core.model.general.UserType
@@ -19,9 +18,8 @@ data class SecurityUser(
     val userRace: Race?,
     val userType: UserType,
     val isActive: Boolean,
-    override val securityOrganization: SecurityOrganization,
     val userGroups: Set<SecurityGroup>,
-    override val securityUnits: Set<SecurityUnit>,
+    val userRoles: Set<SecurityRole>,
 ) : SecurityInfo() {
 
     val fullName: String
@@ -33,15 +31,9 @@ data class SecurityUser(
     val alternativeName: String
         get() = "${firstName[0]}. $lastName"
 
-    override val organizationRoles: Set<SecurityOrganizationRole>
-        get() = (super.organizationRoles + userGroups.organizationRoles()).distinct().toSet()
-
-    override val unitRoles: Set<SecurityUnitRole>
-        get() = (super.unitRoles + userGroups.map { it.unitRoles }.flatten()).distinct().toSet()
-
-    override val unitsRoles: Map<UUID, Set<SecurityUnitRole>>
-        get() = (userGroups.map { it.unitsRoles } + super.unitsRoles).reduce { acc, map -> acc.merge(map) }
-
-    private fun Set<SecurityGroup>.organizationRoles() = this.map { it.organizationRoles }.flatten()
+    override val securityRoles: Set<SecurityRole>
+        get() = (userRoles + userGroups.map {
+            it.securityRoles
+        }.flatten()).distinct().toSet()
 
 }

@@ -1,21 +1,40 @@
 rootProject.name = "thomas-core"
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        mavenLocal()
+        maven {
+            url = uri("https://repo.repsy.io/mvn/${System.getenv("REPSY_USERNAME")}/thomas-release")
+            credentials {
+                username = System.getenv("REPSY_USERNAME")
+                password = System.getenv("REPSY_PASSWORD")
+            }
+        }
+    }
 }
 
 dependencyResolutionManagement {
-    pluginManagement {
-        repositories {
-            gradlePluginPortal()
-            mavenCentral()
-            mavenLocal()
-            maven(url = "https://plugins.gradle.org/m2/")
-            google()
-        }
-    }
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenCentral()
         mavenLocal()
+        maven {
+            url = uri("https://repo.repsy.io/mvn/${System.getenv("REPSY_USERNAME")}/thomas-release")
+            credentials {
+                username = System.getenv("REPSY_USERNAME")
+                password = System.getenv("REPSY_PASSWORD")
+            }
+        }
     }
 }
+
+buildCache {
+    local {
+        isEnabled = true
+        directory = File(rootDir, "build-cache")
+    }
+}
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

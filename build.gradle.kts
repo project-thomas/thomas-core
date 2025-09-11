@@ -1,3 +1,5 @@
+import com.thomas.project.task.versioning.currentVersion
+import io.freefair.gradle.plugins.aspectj.AjcAction
 import java.net.URI
 import kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
@@ -7,16 +9,20 @@ import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+
 plugins {
     alias(libs.plugins.kotlin.lang)
     alias(libs.plugins.test.fixtures)
     alias(libs.plugins.kotlinx.kover)
     alias(libs.plugins.sonarqube.scanner)
+    alias(libs.plugins.project.plugin)
+    alias(libs.plugins.aspectj.weaving)
     `maven-publish`
     java
 }
 
 group = "com.thomas"
+version = project.currentVersion
 
 java.sourceCompatibility = JavaVersion.valueOf(libs.versions.target.get())
 java.targetCompatibility = JavaVersion.valueOf(libs.versions.target.get())
@@ -25,9 +31,45 @@ kotlin {
     jvmToolchain(libs.versions.jdk.get().toInt())
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
+tasks.withType<KotlinCompile> {
+    configure<AjcAction> {
+        enabled = true
+        classpath
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+                "-XnoInline",
+                "-Xlint:adviceDidNotMatch=ignore"
+            )
+        }
+    }
+    compilerOptions {
+        jvmTarget.set(JvmTarget.valueOf(libs.versions.jvm.get()))
+        freeCompilerArgs.addAll(
+            "-Xjsr305=strict",
+            "-Xcontext-receivers",
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-java-parameters",
+            "-Xconcurrent-gc"
+        )
+    }
+}
+
+tasks.named("compileTestKotlin", KotlinCompile::class) {
+    configure<AjcAction> {
+        enabled = true
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            aspectpath.from("${layout.buildDirectory.get()}/classes/kotlin/main")
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+            )
+        }
+    }
 }
 
 dependencies {
@@ -41,6 +83,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("file.encoding", "UTF-8")
+    systemProperty("user.timezone", "UTC")
+    maxHeapSize = "1g"
+
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 kover {
@@ -106,9 +156,11 @@ sonar {
         property("sonar.tests", file("$projectDir/src/test/kotlin/"))
         property("sonar.projectName", "T.H.O.M.A.S. Core")
         property("sonar.projectKey", "thomas-core")
-        property("sonar.login", System.getenv("THOMAS_CORE_SONAR_LOGIN"))
-        property("sonar.host.url", System.getenv("THOMAS_SONAR_URL"))
+        property("sonar.login", System.getenv("CORE_SONAR_LOGIN"))
+        property("sonar.host.url", System.getenv("SONAR_URL"))
         property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/kover/report.xml")
+        property("sonar.kotlin.file.suffixes", ".kt")
+        property("sonar.java.file.suffixes", ".java")
         property("sonar.verbose", true)
         property("sonar.qualitygate.wait", true)
         property(
@@ -119,19 +171,6 @@ sonar {
             ).joinToString(separator = ",")
         )
     }
-}
-
-tasks.withType<KotlinCompile> {
-    compilerOptions.jvmTarget.set(JvmTarget.valueOf(libs.versions.jvm.get()))
-}
-
-tasks.named("sonar") {
-    dependsOn("koverXmlReport")
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
 }
 
 publishing {

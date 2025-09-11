@@ -1,14 +1,11 @@
 package com.thomas.core.generator
 
-import com.thomas.core.generator.GroupGenerator.generateSecurityGroupSet
-import com.thomas.core.generator.OrganizationUnitGenerator.generateSecurityOrganization
-import com.thomas.core.generator.OrganizationUnitGenerator.generateSecurityUnitSet
+import com.thomas.core.data.securityRoles
+import com.thomas.core.generator.GroupGenerator.generateSecurityGroup
 import com.thomas.core.generator.PersonGenerator.generatePerson
-import com.thomas.core.generator.RoleGenerator.generateOrganizationRoles
 import com.thomas.core.model.general.UserType
 import com.thomas.core.model.general.UserType.MASTER
-import com.thomas.core.model.security.SecurityOrganizationRole
-import com.thomas.core.model.security.SecurityUnitRole
+import com.thomas.core.model.security.SecurityRole
 import com.thomas.core.model.security.SecurityUser
 
 object UserGenerator {
@@ -16,7 +13,6 @@ object UserGenerator {
     fun generateSecurityUser(
         userType: UserType = MASTER,
     ): SecurityUser = generatePerson().let {
-        val organization = generateSecurityOrganization()
         SecurityUser(
             userId = it.id,
             firstName = it.firstName,
@@ -29,46 +25,19 @@ object UserGenerator {
             userRace = it.userRace,
             userType = userType,
             isActive = listOf(true, false).random(),
-            securityOrganization = organization,
-            userGroups = generateSecurityGroupSet().map { group ->
-                group.copy(
-                    securityOrganization = organization.copy(
-                        organizationRoles = generateOrganizationRoles()
-                    )
-                )
-            }.toSet(),
-            securityUnits = generateSecurityUnitSet(),
+            userRoles = setOf(),
+            userGroups = setOf(),
         )
     }
 
     fun generateSecurityUserWithRoles(
-        userOrganizationRoles: Set<SecurityOrganizationRole> = setOf(),
-        userUnitRoles: Set<SecurityUnitRole> = setOf(),
-        groupOrganizationRoles: Set<SecurityOrganizationRole> = setOf(),
-        groupUnitRoles: Set<SecurityUnitRole> = setOf(),
-    ): SecurityUser = generateSecurityUser().let { user ->
-        user.copy(
-            securityOrganization = user.securityOrganization.copy(
-                organizationRoles = userOrganizationRoles
-            ),
-            securityUnits = user.securityUnits.map { unit ->
-                unit.copy(
-                    unitRoles = userUnitRoles
-                )
-            }.toSet(),
-            userGroups = user.userGroups.map { group ->
-                group.copy(
-                    securityOrganization = group.securityOrganization.copy(
-                        organizationRoles = groupOrganizationRoles
-                    ),
-                    securityUnits = group.securityUnits.map { unit ->
-                        unit.copy(
-                            unitRoles = groupUnitRoles
-                        )
-                    }.toSet()
-                )
-            }.toSet(),
-        )
-    }
+        userType: UserType = MASTER,
+        userRoles: Set<SecurityRole> = securityRoles,
+        groupRoles: Set<SecurityRole> = securityRoles,
+    ): SecurityUser = generateSecurityUser().copy(
+        userType = userType,
+        userRoles = userRoles,
+        userGroups = setOf(generateSecurityGroup(groupRoles)),
+    )
 
 }

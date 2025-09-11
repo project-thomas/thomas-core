@@ -20,10 +20,25 @@ class DetailedExceptionTest {
     companion object {
         @JvmStatic
         fun errorParameters(): List<Arguments> = listOf(
-            Arguments.of("Message of UNAUTHENTICATED_USER", UNAUTHENTICATED_USER, IllegalArgumentException(), mapOf("Detail Message" to listOf<String>())),
+            Arguments.of(
+                "Message of UNAUTHENTICATED_USER",
+                UNAUTHENTICATED_USER,
+                IllegalArgumentException(),
+                mapOf("Detail Message" to listOf<String>())
+            ),
             Arguments.of("Message of UNAUTHORIZED_ACTION", UNAUTHORIZED_ACTION, NullPointerException(), mapOf("Message" to listOf("Detail Message"))),
-            Arguments.of("Message of INVALID_ENTITY", INVALID_ENTITY, ClassNotFoundException(), mapOf("Errors" to listOf("Detail Message", "Detail Message 02")) ),
-            Arguments.of("Message of INVALID_PARAMETER", INVALID_PARAMETER, NoSuchMethodException(), mapOf(INVALID_PARAMETER.name to listOf(INVALID_PARAMETER.name)) ),
+            Arguments.of(
+                "Message of INVALID_ENTITY",
+                INVALID_ENTITY,
+                ClassNotFoundException(),
+                mapOf("Errors" to listOf("Detail Message", "Detail Message 02"))
+            ),
+            Arguments.of(
+                "Message of INVALID_PARAMETER",
+                INVALID_PARAMETER,
+                NoSuchMethodException(),
+                mapOf(INVALID_PARAMETER.name to listOf(INVALID_PARAMETER.name))
+            ),
             Arguments.of("Message of NOT_FOUND", NOT_FOUND, ArithmeticException(), null),
             Arguments.of("Message of APPLICATION_ERROR", APPLICATION_ERROR, null, null),
         )
@@ -72,9 +87,5 @@ class DetailedExceptionTest {
         assertEquals(detail, exception.detail)
         assertEquals(cause, exception.cause)
     }
-
-    private data class ErrorDetail(
-        val message: String = "Error detail",
-    )
 
 }
