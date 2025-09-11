@@ -1,9 +1,9 @@
 package com.thomas.core.generator
 
 import com.thomas.core.data.GroupTestData
-import com.thomas.core.generator.OrganizationUnitGenerator.generateSecurityOrganization
-import com.thomas.core.generator.OrganizationUnitGenerator.generateSecurityUnitSet
+import com.thomas.core.data.securityRoles
 import com.thomas.core.model.security.SecurityGroup
+import com.thomas.core.model.security.SecurityRole
 import java.util.UUID
 import kotlin.random.Random
 
@@ -67,12 +67,23 @@ object GroupGenerator {
         )
     }
 
-    fun generateSecurityGroup(): SecurityGroup = generateGroup().let {
+    fun generateSecurityGroup(
+        withRoles: Boolean = false,
+    ): SecurityGroup = generateGroup().let {
         SecurityGroup(
             groupId = it.id,
             groupName = it.groupName,
-            securityOrganization = generateSecurityOrganization(),
-            securityUnits = generateSecurityUnitSet(),
+            securityRoles = if (withRoles) securityRoles else setOf(),
+        )
+    }
+
+    fun generateSecurityGroup(
+        groupRoles: Set<SecurityRole>,
+    ): SecurityGroup = generateGroup().let {
+        SecurityGroup(
+            groupId = it.id,
+            groupName = it.groupName,
+            securityRoles = groupRoles
         )
     }
 
@@ -80,6 +91,12 @@ object GroupGenerator {
         quantity: Int = 3,
     ): Set<SecurityGroup> = (1..quantity).map {
         generateSecurityGroup()
+    }.toSet()
+
+    fun generateSecurityGroupSetWithRoles(
+        quantity: Int = 3,
+    ): Set<SecurityGroup> = (1..quantity).map {
+        generateSecurityGroup(true)
     }.toSet()
 
 }

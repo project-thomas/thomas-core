@@ -1,14 +1,12 @@
 package com.thomas.core.authorization
 
 import com.thomas.core.context.SessionContextHolder.clearContext
-import com.thomas.core.context.SessionContextHolder.currentUnit
 import com.thomas.core.context.SessionContextHolder.currentUser
 import com.thomas.core.exception.ErrorType.UNAUTHORIZED_ACTION
+import com.thomas.core.generator.UserGenerator.generateSecurityUser
 import com.thomas.core.generator.UserGenerator.generateSecurityUserWithRoles
 import com.thomas.core.i18n.CoreMessageI18N.contextCurrentSessionCurrentUserNotAllowed
-import com.thomas.core.model.security.SecurityOrganizationRole
 import com.thomas.core.model.security.SecurityRole
-import com.thomas.core.model.security.SecurityUnitRole
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -28,132 +26,99 @@ class AuthorizationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(SecurityOrganizationRole::class)
+    @EnumSource(SecurityRole::class)
     fun `When organization role is required and user does not have it, should throws UnauthorizedUserException`(
-        role: SecurityOrganizationRole
+        role: SecurityRole
     ) = runTest(StandardTestDispatcher()) {
-        currentUser = generateSecurityUserWithRoles(
-            userUnitRoles = SecurityUnitRole.entries.toSet(),
-            groupUnitRoles = SecurityUnitRole.entries.toSet(),
-        )
+        currentUser = generateSecurityUser()
         val exception = assertThrows<UnauthorizedUserException> {
-            authorized(roles = arrayOf(role)) {}
+            authorized(roles = setOf(role)) {}
         }
         assertEquals(UnauthorizedUserException().message, exception.message)
         assertEquals(UNAUTHORIZED_ACTION, exception.type)
     }
 
     @ParameterizedTest
-    @EnumSource(SecurityUnitRole::class)
-    fun `When unit role is required and user does not have it, should throws UnauthorizedUserException`(
-        role: SecurityUnitRole
-    ) = runTest(StandardTestDispatcher()) {
-        currentUser = generateSecurityUserWithRoles(
-            userOrganizationRoles = SecurityOrganizationRole.entries.toSet(),
-            groupOrganizationRoles = SecurityOrganizationRole.entries.toSet(),
-        )
-        val exception = assertThrows<UnauthorizedUserException> {
-            authorized(roles = arrayOf(role)) {}
-        }
-        assertEquals(UnauthorizedUserException().message, exception.message)
-        assertEquals(UNAUTHORIZED_ACTION, exception.type)
-    }
-
-    @ParameterizedTest
-    @EnumSource(SecurityOrganizationRole::class)
+    @EnumSource(SecurityRole::class)
     fun `When organization role is required and user have it, should return the block`(
-        role: SecurityOrganizationRole
+        role: SecurityRole
     ) = runTest(StandardTestDispatcher()) {
         currentUser = generateSecurityUserWithRoles(
-            userOrganizationRoles = setOf(role),
+            userRoles = setOf(role),
         )
         assertDoesNotThrow {
-            assertTrue(authorized(roles = arrayOf(role)) { true })
+            assertTrue(authorized(roles = setOf(role)) { true })
         }
     }
 
     @ParameterizedTest
-    @EnumSource(SecurityOrganizationRole::class)
+    @EnumSource(SecurityRole::class)
     fun `When organization role is required and group have it, should return the block`(
-        role: SecurityOrganizationRole
+        role: SecurityRole
     ) = runTest(StandardTestDispatcher()) {
         currentUser = generateSecurityUserWithRoles(
-            groupOrganizationRoles = setOf(role),
+            groupRoles = setOf(role),
         )
         assertDoesNotThrow {
-            assertTrue(authorized(roles = arrayOf(role)) { true })
-        }
-    }
-
-    @ParameterizedTest
-    @EnumSource(SecurityUnitRole::class)
-    fun `When unit role is required and user have it, should return the block`(
-        role: SecurityUnitRole
-    ) = runTest(StandardTestDispatcher()) {
-        currentUser = generateSecurityUserWithRoles(
-            userUnitRoles = setOf(role),
-        )
-        currentUnit = currentUser.securityUnits.random().unitId
-        assertDoesNotThrow {
-            assertTrue(authorized(roles = arrayOf(role)) { true })
-        }
-    }
-
-    @ParameterizedTest
-    @EnumSource(SecurityUnitRole::class)
-    fun `When unit role is required and group have it, should return the block`(
-        role: SecurityUnitRole
-    ) = runTest(StandardTestDispatcher()) {
-        currentUser = generateSecurityUserWithRoles(
-            groupUnitRoles = setOf(role),
-        )
-        currentUnit = currentUser.userGroups.random().securityUnits.random().unitId
-        assertDoesNotThrow {
-            assertTrue(authorized(roles = arrayOf(role)) { true })
+            assertTrue(authorized(roles = setOf(role)) { true })
         }
     }
 
     @Test
     fun `When roles are not specified, should return the block`() = runTest(StandardTestDispatcher()) {
         assertDoesNotThrow {
-            currentUser = generateSecurityUserWithRoles()
+            currentUser = generateSecurityUser()
             assertTrue(authorized { true })
         }
     }
 
     @Test
-    fun `When multiple mixed roles are required and user has partial match, should throw UnauthorizedUserException`() = runTest(StandardTestDispatcher()) {
-        val role = SecurityOrganizationRole.entries.random()
-        currentUser = generateSecurityUserWithRoles(
-            userOrganizationRoles = setOf(role),
-        )
+    fun `When multiple mixed roles are required and user has partial match, should throw UnauthorizedUserException`() =
+        runTest(StandardTestDispatcher()) {
+            val role = SecurityRole.entries.random()
+            currentUser = generateSecurityUserWithRoles(
+                userRoles = setOf(role),
+                groupRoles = setOf(),
+            )
 
-        val requiredRoles = arrayOf<SecurityRole<*, *, *>>(
-            SecurityUnitRole.entries.random(),
-        ) + SecurityOrganizationRole.entries.filter { it != role }.shuffled().take(2)
+            val requiredRoles = SecurityRole.entries.filter { it != role }.shuffled().take(3).toSet()
 
-        val exception = assertThrows<UnauthorizedUserException> {
-            authorized(roles = requiredRoles) {}
+            val exception = assertThrows<UnauthorizedUserException> {
+                authorized(roles = requiredRoles) {}
+            }
+            assertEquals(contextCurrentSessionCurrentUserNotAllowed(), exception.message)
+            assertEquals(UNAUTHORIZED_ACTION, exception.type)
         }
-        assertEquals(contextCurrentSessionCurrentUserNotAllowed(), exception.message)
-        assertEquals(UNAUTHORIZED_ACTION, exception.type)
-    }
 
     @Test
     fun `When multiple mixed roles are required and user has at least one, should return the block`() = runTest(StandardTestDispatcher()) {
-        val organizationRole = SecurityOrganizationRole.entries.random()
-        val unitRole = SecurityUnitRole.entries.random()
+        val securityRole = SecurityRole.entries.random()
 
         currentUser = generateSecurityUserWithRoles(
-            userOrganizationRoles = setOf(organizationRole),
-            userUnitRoles = setOf(unitRole)
+            userRoles = setOf(securityRole),
         )
-        currentUnit = currentUser.securityUnits.first().unitId
 
-        val requiredRoles = arrayOf<SecurityRole<*, *, *>>(
-            organizationRole,
-            SecurityOrganizationRole.entries.filter { it != organizationRole }.random(),
-            unitRole
+        val requiredRoles = setOf(
+            securityRole,
+            SecurityRole.entries.filter { it != securityRole }.random(),
+        )
+
+        assertDoesNotThrow {
+            assertTrue(authorized(roles = requiredRoles) { true })
+        }
+    }
+
+    @Test
+    fun `When multiple mixed roles are required and group has at least one, should return the block`() = runTest(StandardTestDispatcher()) {
+        val securityRole = SecurityRole.entries.random()
+
+        currentUser = generateSecurityUserWithRoles(
+            groupRoles = setOf(securityRole),
+        )
+
+        val requiredRoles = setOf(
+            securityRole,
+            SecurityRole.entries.filter { it != securityRole }.random(),
         )
 
         assertDoesNotThrow {

@@ -19,7 +19,7 @@ class UserTypeTest {
 
     @Test
     fun `AddressState PT_BR`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("pt-BR")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("pt-BR")
         assertEquals("Master", MASTER.typeName)
         assertEquals("Usuário master do sistema, com acesso a todas as funcionalidades", MASTER.typeDescription)
         assertEquals("Administrador", ADMINISTRATOR.typeName)
@@ -30,7 +30,7 @@ class UserTypeTest {
 
     @Test
     fun `AddressState EN_US`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("en-US")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("en-US")
         assertEquals("Master", MASTER.typeName)
         assertEquals("System master user, with access to all functionalities", MASTER.typeDescription)
         assertEquals("Administrator", ADMINISTRATOR.typeName)

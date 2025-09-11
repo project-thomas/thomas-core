@@ -30,7 +30,7 @@ internal class GenderTest {
 
     @Test
     fun `Genders PT_BR`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("pt-BR")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("pt-BR")
         assertEquals("Masculino", CIS_MALE.label)
         assertEquals("Feminino", CIS_FEMALE.label)
         assertEquals("Agênero", NO_GENDER.label)
@@ -49,7 +49,7 @@ internal class GenderTest {
 
     @Test
     fun `Genders EN_US`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("en-US")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("en-US")
         assertEquals("Male", CIS_MALE.label)
         assertEquals("Female", CIS_FEMALE.label)
         assertEquals("Agender", NO_GENDER.label)
@@ -68,7 +68,7 @@ internal class GenderTest {
 
     @Test
     fun `Genders CH`() {
-        SessionContextHolder.context.currentLocale = Locale.CHINA
+        SessionContextHolder.currentLocale = Locale.CHINA
         assertEquals("Masculino", CIS_MALE.label)
         assertEquals("Feminino", CIS_FEMALE.label)
         assertEquals("Agênero", NO_GENDER.label)

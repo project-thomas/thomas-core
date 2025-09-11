@@ -25,7 +25,7 @@ class AddressRegionTest {
 
     @Test
     fun `AddressRegion PT_BR`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("pt-BR")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("pt-BR")
         assertEquals("Norte", NORTH.label)
         assertEquals("Sul", SOUTH.label)
         assertEquals("Leste", EAST.label)
@@ -39,7 +39,7 @@ class AddressRegionTest {
 
     @Test
     fun `AddressRegion EN_US`() {
-        SessionContextHolder.context.currentLocale = Locale.forLanguageTag("en-US")
+        SessionContextHolder.currentLocale = Locale.forLanguageTag("en-US")
         assertEquals("North", NORTH.label)
         assertEquals("South", SOUTH.label)
         assertEquals("East", EAST.label)

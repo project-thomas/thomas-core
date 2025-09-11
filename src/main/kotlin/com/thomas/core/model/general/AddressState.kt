@@ -1,8 +1,13 @@
 package com.thomas.core.model.general
 
 import com.thomas.core.i18n.BundleResolver
+import com.thomas.core.model.general.AddressRegion.CENTERWEST
+import com.thomas.core.model.general.AddressRegion.NORTH
+import com.thomas.core.model.general.AddressRegion.NORTHEAST
+import com.thomas.core.model.general.AddressRegion.SOUTH
+import com.thomas.core.model.general.AddressRegion.SOUTHEAST
+import com.thomas.core.model.general.AddressRegion.SOUTHWEST
 import com.thomas.core.model.general.AddressState.AddressStateStringsI18N.coreAddressStateString
-import com.thomas.core.model.general.AddressRegion.*
 
 enum class AddressState(
     val region: AddressRegion

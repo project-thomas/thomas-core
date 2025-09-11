@@ -2,48 +2,61 @@ package com.thomas.core.context
 
 import com.thomas.core.model.security.SecurityUser
 import java.util.Locale
-import java.util.UUID
 
 object SessionContextHolder {
 
-    private val contextHolder = ThreadLocal<SessionContext?>()
+    private val contextHolder = ThreadLocal.withInitial { SessionContext.empty() }
 
     var context: SessionContext
-        get() = contextHolder.get() ?: SessionContext().also { contextHolder.set(it) }
+        get() = contextHolder.get()
         set(value) {
             contextHolder.set(value)
         }
 
     var currentUser: SecurityUser
-        get() = context.currentUser
+        get() = context.currentUser ?: throw UnauthenticatedUserException()
         set(value) {
-            context.currentUser = value
+            updateContextAtomically { it.withUser(value) }
         }
 
     var currentToken: String?
         get() = context.currentToken
         set(value) {
-            context.currentToken = value
+            updateContextAtomically { it.withToken(value) }
         }
 
     var currentLocale: Locale
         get() = context.currentLocale
         set(value) {
-            context.currentLocale = value
+            updateContextAtomically { it.withLocale(value) }
         }
 
-    var currentUnit: UUID?
-        get() = context.currentUnit
-        set(value) {
-            context.currentUnit = value
-        }
+    fun updateContext(updater: (SessionContext) -> SessionContext) {
+        updateContextAtomically(updater)
+    }
 
-    val currentOrganization: UUID
-        get() = context.currentOrganization
+    private fun updateContextAtomically(updater: (SessionContext) -> SessionContext) {
+        val currentContext = contextHolder.get()
+        val newContext = updater(currentContext)
+        contextHolder.set(newContext)
+    }
 
     fun getSessionProperty(property: String): String? = context.getProperty(property)
 
-    fun setSessionProperty(property: String, value: String?) = context.setProperty(property, value)
+    fun setSessionProperty(property: String, value: String?) {
+        updateContextAtomically { it.setProperty(property, value) }
+    }
 
-    fun clearContext() = context.clear()
+    fun sessionProperties(): Map<String, String> = context.sessionProperties
+
+    fun clearContext() {
+        contextHolder.set(SessionContext.empty())
+    }
+
+    fun withContext(sessionContext: SessionContext): AutoCloseable {
+        val previousContext = context
+        context = sessionContext
+        return AutoCloseable { context = previousContext }
+    }
+
 }
