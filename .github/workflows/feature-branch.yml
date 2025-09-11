@@ -1,153 +1,153 @@
-name: Feature Branch CI
-
-on:
-  push:
-    branches:
-      - 'feature/*'
-
-env:
-  JAVA_VERSION: '21'
-
-jobs:
-  feature-ci:
-    name: Feature Branch Pipeline
-    runs-on:
-      group: Default
-
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: write
-
-    outputs:
-      pr-created: ${{ steps.create-pr.outputs.pr-created }}
-      pr-number: ${{ steps.create-pr.outputs.pr-number }}
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
-
-    - name: Extract feature name
-      id: feature
-      run: |
-        BRANCH_NAME=${GITHUB_REF#refs/heads/}
-        FEATURE_NAME=${BRANCH_NAME#feature/}
-        echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        echo "name=$FEATURE_NAME" >> $GITHUB_OUTPUT
-
-    - name: Setup Java ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v3
-      with:
-        cache-read-only: false
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Create/Update Pull Request to develop
-      id: create-pr
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { owner, repo } = context.repo;
-          const head = '${{ steps.feature.outputs.branch }}';
-          const base = 'develop';
-          const title = `🚀 Feature: ${{ steps.feature.outputs.name }}`;
-          const body = `## Feature Implementation: ${{ steps.feature.outputs.name }}
-
-          ### Description
-          This PR implements the feature: **${{ steps.feature.outputs.name }}**
-
-          ### Changes
-          - Automatic PR created from feature branch
-          - All CI checks must pass before merge
-
-          ### Checklist
-          - [x] Feature branch created
-          - [x] CI pipeline triggered
-          - [ ] Code review completed
-          - [ ] Ready for merge to develop
-
-          ---
-          🤖 This PR was created automatically by the CI pipeline.`;
-
-          // Check if PR already exists
-          const { data: existingPRs } = await github.rest.pulls.list({
-            owner,
-            repo,
-            head: `${owner}:${head}`,
-            base,
-            state: 'open'
-          });
-
-          let prCreated = false;
-          let prNumber;
-
-          if (existingPRs.length === 0) {
-            // Create new PR
-            const { data: pr } = await github.rest.pulls.create({
-              owner,
-              repo,
-              title,
-              head,
-              base,
-              body
-            });
-            prCreated = true;
-            prNumber = pr.number;
-            console.log(`✅ Created new PR #${pr.number}`);
-          } else {
-            // Update existing PR
-            const existingPR = existingPRs[0];
-            await github.rest.pulls.update({
-              owner,
-              repo,
-              pull_number: existingPR.number,
-              title,
-              body: body + `\n\n**Last Updated:** ${new Date().toISOString()}`
-            });
-            prCreated = false;
-            prNumber = existingPR.number;
-            console.log(`✅ Updated existing PR #${existingPR.number}`);
-          }
-
-          core.setOutput('pr-created', prCreated);
-          core.setOutput('pr-number', prNumber);
-
-    - name: Clean and Build
-      env:
-        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
-        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
-      run: ./gradlew clean build --no-daemon --build-cache
-
-    - name: Execute Kover Tasks
-      env:
-        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
-        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
-      run: |
-        ./gradlew koverVerify --no-daemon
-        ./gradlew koverXmlReport --no-daemon
-        ./gradlew koverHtmlReport --no-daemon
-
-    - name: Upload coverage reports
-      env:
-        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
-        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-reports-${{ steps.feature.outputs.name }}
-        path: |
-          build/reports/kover/
-        retention-days: 7
-
+#name: Feature Branch CI
+#
+#on:
+#  push:
+#    branches:
+#      - 'feature/*'
+#
+#env:
+#  JAVA_VERSION: '21'
+#
+#jobs:
+#  feature-ci:
+#    name: Feature Branch Pipeline
+#    runs-on:
+#      group: Default
+#
+#    permissions:
+#      contents: write
+#      pull-requests: write
+#      checks: write
+#
+#    outputs:
+#      pr-created: ${{ steps.create-pr.outputs.pr-created }}
+#      pr-number: ${{ steps.create-pr.outputs.pr-number }}
+#
+#    steps:
+#    - name: Checkout repository
+#      uses: actions/checkout@v4
+#      with:
+#        token: ${{ secrets.GITHUB_TOKEN }}
+#        fetch-depth: 0
+#
+#    - name: Extract feature name
+#      id: feature
+#      run: |
+#        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+#        FEATURE_NAME=${BRANCH_NAME#feature/}
+#        echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+#        echo "name=$FEATURE_NAME" >> $GITHUB_OUTPUT
+#
+#    - name: Setup Java ${{ env.JAVA_VERSION }}
+#      uses: actions/setup-java@v4
+#      with:
+#        java-version: ${{ env.JAVA_VERSION }}
+#        distribution: 'temurin'
+#
+#    - name: Setup Gradle
+#      uses: gradle/gradle-build-action@v3
+#      with:
+#        cache-read-only: false
+#
+#    - name: Grant execute permission for gradlew
+#      run: chmod +x gradlew
+#
+#    - name: Create/Update Pull Request to develop
+#      id: create-pr
+#      uses: actions/github-script@v7
+#      with:
+#        script: |
+#          const { owner, repo } = context.repo;
+#          const head = '${{ steps.feature.outputs.branch }}';
+#          const base = 'develop';
+#          const title = `🚀 Feature: ${{ steps.feature.outputs.name }}`;
+#          const body = `## Feature Implementation: ${{ steps.feature.outputs.name }}
+#
+#          ### Description
+#          This PR implements the feature: **${{ steps.feature.outputs.name }}**
+#
+#          ### Changes
+#          - Automatic PR created from feature branch
+#          - All CI checks must pass before merge
+#
+#          ### Checklist
+#          - [x] Feature branch created
+#          - [x] CI pipeline triggered
+#          - [ ] Code review completed
+#          - [ ] Ready for merge to develop
+#
+#          ---
+#          🤖 This PR was created automatically by the CI pipeline.`;
+#
+#          // Check if PR already exists
+#          const { data: existingPRs } = await github.rest.pulls.list({
+#            owner,
+#            repo,
+#            head: `${owner}:${head}`,
+#            base,
+#            state: 'open'
+#          });
+#
+#          let prCreated = false;
+#          let prNumber;
+#
+#          if (existingPRs.length === 0) {
+#            // Create new PR
+#            const { data: pr } = await github.rest.pulls.create({
+#              owner,
+#              repo,
+#              title,
+#              head,
+#              base,
+#              body
+#            });
+#            prCreated = true;
+#            prNumber = pr.number;
+#            console.log(`✅ Created new PR #${pr.number}`);
+#          } else {
+#            // Update existing PR
+#            const existingPR = existingPRs[0];
+#            await github.rest.pulls.update({
+#              owner,
+#              repo,
+#              pull_number: existingPR.number,
+#              title,
+#              body: body + `\n\n**Last Updated:** ${new Date().toISOString()}`
+#            });
+#            prCreated = false;
+#            prNumber = existingPR.number;
+#            console.log(`✅ Updated existing PR #${existingPR.number}`);
+#          }
+#
+#          core.setOutput('pr-created', prCreated);
+#          core.setOutput('pr-number', prNumber);
+#
+#    - name: Clean and Build
+#      env:
+#        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+#        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+#      run: ./gradlew clean build --no-daemon --build-cache
+#
+#    - name: Execute Kover Tasks
+#      env:
+#        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+#        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+#      run: |
+#        ./gradlew koverVerify --no-daemon
+#        ./gradlew koverXmlReport --no-daemon
+#        ./gradlew koverHtmlReport --no-daemon
+#
+#    - name: Upload coverage reports
+#      env:
+#        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+#        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: coverage-reports-${{ steps.feature.outputs.name }}
+#        path: |
+#          build/reports/kover/
+#        retention-days: 7
+#
 #    - name: SonarQube Analysis
 #      env:
 #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -155,47 +155,47 @@ jobs:
 #        CORE_SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
 #        SONAR_URL: ${{ secrets.SONAR_HOST_URL }}
 #      run: ./gradlew sonar --no-daemon
-
-    - name: Increment Minor Version
-      env:
-        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
-        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
-      if: steps.create-pr.outputs.pr-created == 'true'
-      id: version
-      run: |
-        OLD_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
-        ./gradlew incrementMinorVersion --no-daemon
-        NEW_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
-        echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
-        echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
-    - name: Commit Version Update
-      if: steps.create-pr.outputs.pr-created == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add version.properties
-        git commit -m "chore: increment version from ${{ steps.version.outputs.old-version }} to ${{ steps.version.outputs.new-version }}"
-        git push origin ${{ steps.feature.outputs.branch }}
-
-    - name: Update PR with version info
-      if: steps.create-pr.outputs.pr-created == 'true'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { owner, repo } = context.repo;
-          const prNumber = '${{ steps.create-pr.outputs.pr-number }}';
-          const oldVersion = '${{ steps.version.outputs.old-version }}';
-          const newVersion = '${{ steps.version.outputs.new-version }}';
-
-          await github.rest.issues.createComment({
-            owner,
-            repo,
-            issue_number: prNumber,
-            body: `## 🔄 Version Updated
-
-            **Previous Version:** \`${oldVersion}\`
-            **New Version:** \`${newVersion}\`
-
-            The minor version has been automatically incremented for this feature.`
-          });
+#
+#    - name: Increment Minor Version
+#      id: version
+#      if: steps.create-pr.outputs.pr-created == 'true'
+#      env:
+#        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+#        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
+#      run: |
+#        OLD_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
+#        ./gradlew incrementMinorVersion --no-daemon
+#        NEW_VERSION=$(./gradlew :properties -q --property version | grep "version:" | awk '{print $2}')
+#        echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+#        echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+#
+#    - name: Commit Version Update
+#      if: steps.create-pr.outputs.pr-created == 'true'
+#      run: |
+#        git config --local user.email "action@github.com"
+#        git config --local user.name "GitHub Action"
+#        git add version.properties
+#        git commit -m "chore: increment version from ${{ steps.version.outputs.old-version }} to ${{ steps.version.outputs.new-version }}"
+#        git push origin ${{ steps.feature.outputs.branch }}
+#
+#    - name: Update PR with version info
+#      if: steps.create-pr.outputs.pr-created == 'true'
+#      uses: actions/github-script@v7
+#      with:
+#        script: |
+#          const { owner, repo } = context.repo;
+#          const prNumber = '${{ steps.create-pr.outputs.pr-number }}';
+#          const oldVersion = '${{ steps.version.outputs.old-version }}';
+#          const newVersion = '${{ steps.version.outputs.new-version }}';
+#
+#          await github.rest.issues.createComment({
+#            owner,
+#            repo,
+#            issue_number: prNumber,
+#            body: `## 🔄 Version Updated
+#
+#            **Previous Version:** \`${oldVersion}\`
+#            **New Version:** \`${newVersion}\`
+#
+#            The minor version has been automatically incremented for this feature.`
+#          });
