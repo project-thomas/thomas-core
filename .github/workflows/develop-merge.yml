@@ -47,6 +47,9 @@ jobs:
 
     - name: Create/Update Pull Request to master
       id: create-pr
+      env:
+        REPSY_USERNAME: ${{ secrets.REPSY_USERNAME }}
+        REPSY_PASSWORD: ${{ secrets.REPSY_PASSWORD }}
       uses: actions/github-script@v7
       with:
         script: |
