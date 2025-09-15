@@ -76,6 +76,9 @@ dependencies {
 
     aspect("com.thomas:thomas-core:1.0.0")
     aspect("org.aspectj:aspectjweaver:1.9.24")
+
+    testImplementation("com.thomas:thomas-core:1.0.0:test-fixtures")
+    testFixturesImplementation("com.thomas:thomas-core:1.0.0:test-fixtures")
 }
 
 tasks.withType<KotlinCompile> {
