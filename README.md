@@ -55,6 +55,10 @@ Key goals:
 ## Usage
 
 ```kotlin
+plugins {
+    id("io.freefair.aspectj.post-compile-weaving") version "8.14.2"
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -68,7 +72,53 @@ repositories {
 
 dependencies {
     implementation("com.thomas:thomas-core:1.0.0")
+    implementation("org.aspectj:aspectjrt:1.9.24")
+
+    aspect("com.thomas:thomas-core:1.0.0")
+    aspect("org.aspectj:aspectjweaver:1.9.24")
 }
+
+tasks.withType<KotlinCompile> {
+    configure<AjcAction> {
+        enabled = true
+        classpath
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+                "-XnoInline",
+                "-Xlint:adviceDidNotMatch=ignore"
+            )
+        }
+    }
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+        freeCompilerArgs.addAll(
+            "-Xjsr305=strict",
+            "-Xcontext-receivers",
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-java-parameters",
+            "-Xconcurrent-gc"
+        )
+    }
+}
+
+tasks.named("compileTestKotlin", KotlinCompile::class) {
+    configure<AjcAction> {
+        enabled = true
+        options {
+            aspectpath.setFrom(configurations.aspect)
+            aspectpath.from("${layout.buildDirectory.get()}/classes/kotlin/main")
+            compilerArgs = listOf(
+                "-showWeaveInfo",
+                "-verbose",
+            )
+        }
+    }
+}
+
 ```
 
 ## Testing
