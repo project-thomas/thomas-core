@@ -9,7 +9,6 @@ import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType.APPLICATION
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-
 plugins {
     alias(libs.plugins.kotlin.lang)
     alias(libs.plugins.test.fixtures)
@@ -173,6 +172,11 @@ sonar {
     }
 }
 
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -180,9 +184,9 @@ publishing {
             artifactId = project.name
             version = project.version.toString()
             from(components["kotlin"])
+            artifact(sourcesJar)
             artifact(tasks.named("testFixturesJar")) {
                 classifier = "test-fixtures"
-
             }
             pom {
                 packaging = "jar"
