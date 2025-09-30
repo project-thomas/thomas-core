@@ -11,7 +11,7 @@ import com.thomas.core.model.security.SecurityRoleCategory.MASTER_CATEGORY
 enum class SecurityRole(
     val roleCode: Int,
     val roleOrder: Int,
-    val roleSubgroup: SecurityRoleCategory,
+    val roleCategory: SecurityRoleCategory,
     val roleDisplayable: Boolean,
 ) {
 

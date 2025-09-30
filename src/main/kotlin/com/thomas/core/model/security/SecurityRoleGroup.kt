@@ -20,8 +20,8 @@ enum class SecurityRoleGroup(
 
     val categories: Set<SecurityRoleCategory>
         get() = SecurityRoleCategory.entries
-            .filter { it.subgroupGroup == this }
-            .sortedBy { it.subgroupOrder }
+            .filter { it.categoryGroup == this }
+            .sortedBy { it.categoryOrder }
             .toSet()
 
     private object RoleStringsI18N : BundleResolver("strings/core-roles-groups") {

@@ -59,7 +59,7 @@ class SecurityRoleTest {
             assertNotNull(group)
             assertEquals(properties.getProperty("security.role-group.${group!!.name.lowercase()}.name"), group.groupName)
             assertEquals(properties.getProperty("security.role-group.${group.name.lowercase()}.description"), group.groupDescription)
-            assertTrue(SecurityRoleCategory.entries.filter { it.subgroupGroup == group }.containsAll(group.categories))
+            assertTrue(SecurityRoleCategory.entries.filter { it.categoryGroup == group }.containsAll(group.categories))
         }
     }
 
@@ -72,15 +72,15 @@ class SecurityRoleTest {
     ) {
         currentLocale = locale
         val properties = props()
-        SecurityRoleCategory.entries.map { it.subgroupOrder }.forEach { order ->
-            val subgroup = SecurityRoleCategory.entries.firstOrNull { it.subgroupOrder == order }
+        SecurityRoleCategory.entries.map { it.categoryOrder }.forEach { order ->
+            val subgroup = SecurityRoleCategory.entries.firstOrNull { it.categoryOrder == order }
             assertNotNull(subgroup)
-            assertEquals(properties.getProperty("security.role-category.${subgroup!!.name.lowercase()}.name"), subgroup.subgroupName)
+            assertEquals(properties.getProperty("security.role-category.${subgroup!!.name.lowercase()}.name"), subgroup.categoryName)
             assertEquals(
                 properties.getProperty("security.role-category.${subgroup.name.lowercase()}.description"),
-                subgroup.subgroupDescription
+                subgroup.categoryDescription
             )
-            assertTrue(SecurityRole.entries.filter { it.roleSubgroup == subgroup }.containsAll(subgroup.roles))
+            assertTrue(SecurityRole.entries.filter { it.roleCategory == subgroup }.containsAll(subgroup.roles))
         }
     }
 
@@ -121,7 +121,7 @@ class SecurityRoleTest {
     @Test
     fun `Subgroups List`() {
         SecurityRoleGroup.entries.forEach { group ->
-            val subgroups = SecurityRoleCategory.entries.filter { it.subgroupGroup == group }
+            val subgroups = SecurityRoleCategory.entries.filter { it.categoryGroup == group }
             assertEquals(subgroups.size, group.categories.size)
             subgroups.forEach { subgroup ->
                 assertTrue(group.categories.contains(subgroup))
@@ -132,7 +132,7 @@ class SecurityRoleTest {
     @Test
     fun `Roles List`() {
         SecurityRoleCategory.entries.forEach { subgroup ->
-            val roles = SecurityRole.entries.filter { it.roleSubgroup == subgroup }
+            val roles = SecurityRole.entries.filter { it.roleCategory == subgroup }
             assertEquals(roles.size, subgroup.roles.size)
             roles.forEach { role ->
                 assertTrue(subgroup.roles.contains(role))

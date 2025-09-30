@@ -8,8 +8,8 @@ import com.thomas.core.model.security.SecurityRoleGroup.MANAGEMENT
 import com.thomas.core.model.security.SecurityRoleGroup.MASTER
 
 enum class SecurityRoleCategory(
-    val subgroupGroup: SecurityRoleGroup,
-    val subgroupOrder: Int
+    val categoryGroup: SecurityRoleGroup,
+    val categoryOrder: Int
 ) {
 
     MASTER_CATEGORY(MASTER, 0),
@@ -17,15 +17,15 @@ enum class SecurityRoleCategory(
     MANAGEMENT_USER(MANAGEMENT, 2),
     MANAGEMENT_GROUP(MANAGEMENT, 3);
 
-    val subgroupName: String
+    val categoryName: String
         get() = coreRolesCategoryName(this.name.lowercase())
 
-    val subgroupDescription: String
+    val categoryDescription: String
         get() = coreRolesCategoryDescription(this.name.lowercase())
 
     val roles: Set<SecurityRole>
         get() = SecurityRole.entries
-            .filter { it.roleSubgroup == this }
+            .filter { it.roleCategory == this }
             .sortedBy { it.roleOrder }
             .toSet()
 
