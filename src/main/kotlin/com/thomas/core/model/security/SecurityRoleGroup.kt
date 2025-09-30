@@ -18,7 +18,7 @@ enum class SecurityRoleGroup(
     val groupDescription: String
         get() = coreRolesGroupDescription(this.name.lowercase())
 
-    val subgroups: Set<SecurityRoleCategory>
+    val categories: Set<SecurityRoleCategory>
         get() = SecurityRoleCategory.entries
             .filter { it.subgroupGroup == this }
             .sortedBy { it.subgroupOrder }

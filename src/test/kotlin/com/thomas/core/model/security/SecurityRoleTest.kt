@@ -59,7 +59,7 @@ class SecurityRoleTest {
             assertNotNull(group)
             assertEquals(properties.getProperty("security.role-group.${group!!.name.lowercase()}.name"), group.groupName)
             assertEquals(properties.getProperty("security.role-group.${group.name.lowercase()}.description"), group.groupDescription)
-            assertTrue(SecurityRoleCategory.entries.filter { it.subgroupGroup == group }.containsAll(group.subgroups))
+            assertTrue(SecurityRoleCategory.entries.filter { it.subgroupGroup == group }.containsAll(group.categories))
         }
     }
 
@@ -122,9 +122,9 @@ class SecurityRoleTest {
     fun `Subgroups List`() {
         SecurityRoleGroup.entries.forEach { group ->
             val subgroups = SecurityRoleCategory.entries.filter { it.subgroupGroup == group }
-            assertEquals(subgroups.size, group.subgroups.size)
+            assertEquals(subgroups.size, group.categories.size)
             subgroups.forEach { subgroup ->
-                assertTrue(group.subgroups.contains(subgroup))
+                assertTrue(group.categories.contains(subgroup))
             }
         }
     }
