@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.2.0"
+kotlin = "2.2.21"
 kotlinx-coroutines = "1.10.2"
 jvm = "JVM_21"
 jdk = "21"
@@ -7,12 +7,9 @@ target = "VERSION_21"
 kover = "0.9.1"
 sonarqube = "6.2.0.5505"
 project-plugin = "1.0.0"
-aspectj-weaving = "8.14.2"
 
 logback-classic = "1.5.18"
 logback-kotlin = "7.0.7"
-
-aspectj = "1.9.24"
 
 junit-pioneer = "2.3.0"
 junit-jupiter = "5.12.1"
@@ -33,7 +30,6 @@ test-fixtures = { id = "java-test-fixtures" }
 kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 sonarqube-scanner = { id = "org.sonarqube", version.ref = "sonarqube" }
 project-plugin = { id = "com.thomas.project-plugin", version.ref = "project-plugin" }
-aspectj-weaving = { id = "io.freefair.aspectj.post-compile-weaving", version.ref = "aspectj-weaving" }
 
 [libraries]
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
@@ -48,9 +44,6 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 
 log-logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
 log-logback-kotlin = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "logback-kotlin" }
-
-aspectj-core = { module = "org.aspectj:aspectjrt", version.ref = "aspectj" }
-aspectj-weaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectj" }
 
 junit-jupiter-pioneer = { module = "org.junit-pioneer:junit-pioneer", version.ref = "junit-pioneer" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
@@ -86,11 +79,6 @@ kotlinx-coroutines-all = [
 log-logback-all = [
     "log-logback-classic",
     "log-logback-kotlin",
-]
-
-aspectj-all = [
-    "aspectj-core",
-    "aspectj-weaver",
 ]
 
 junit-all = [
